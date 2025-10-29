@@ -1,142 +1,109 @@
-[npm-version-image]: https://img.shields.io/npm/v/browser-extension-capabilities.svg?color=0971fe
-[npm-version-url]: https://www.npmjs.com/package/browser-extension-capabilities
-[npm-downloads-image]: https://img.shields.io/npm/dm/browser-extension-capabilities.svg?color=0971fe
-[npm-downloads-url]: https://www.npmjs.com/package/browser-extension-capabilities
-[action-image]: https://github.com/cezaraugusto/browser-extension-capabilities/actions/workflows/ci.yml/badge.svg?branch=main
-[action-url]: https://github.com/cezaraugusto/browser-extension-capabilities/actions
+[npm-version-image]: https://img.shields.io/npm/v/browser-extension-compat-data.svg?color=0971fe
+[npm-version-url]: https://www.npmjs.com/package/browser-extension-compat-data
 
-# browser-extension-capabilities [![Version][npm-version-image]][npm-version-url] [![Downloads][npm-downloads-image]][npm-downloads-url] [![workflow][action-image]][action-url]
+[![Version][npm-version-image]][npm-version-url]
 
-A lightweight, zero-dependency TypeScript library for analyzing browser extension manifests and extracting their capabilities. Useful for extension development tools, analysis tools, and browser extension marketplaces.
+### browser-extension-compat-data
 
-## What are Browser Extension Capabilities?
+Return NOT supported WebExtensions manifest fields and API usages for a given browser, using MDN Browser Compat Data for WebExtensions.
 
-Browser extension capabilities represent the **functional interfaces and execution environments** that an extension can utilize. These are the different ways an extension can interact with the browser, web pages, and users. Each capability corresponds to specific manifest fields and defines where and how the extension's code can run.
+- Data source: [MDN browser-compat-data (webextensions)](https://github.com/mdn/browser-compat-data/tree/main/webextensions)
 
-For example:
+### Data
 
-- **Background Capability**: Allows the extension to run persistent code in the background
-- **Content Scripts Capability**: Enables the extension to interact with web page content
-- **Popup Capability**: Provides a user interface through browser toolbar buttons
-- **Options Capability**: Offers configuration pages for user settings
+This package reads BCD from `data/webextensions` (committed by CI). There is no runtime fetch and no override option. The compat data MUST exist at runtime; if it does not, treat it as a setup error. For CI and production builds, enable `strict: true` to fail fast when data is missing.
 
-## Features
+### API
 
-- **Comprehensive Detection**: Detects all major browser extension capabilities and interfaces
-- **User-Friendly Output**: Returns descriptive capability objects with explanations
-- **Cross-Browser Support**: Works with Chrome, Firefox, Edge, and other Chromium-based browsers
+```ts
+import {
+  getUnsupportedManifest,
+  getUnsupportedAPIsFromFile,
+  type UnsupportedItem,
+} from 'browser-extension-compat-data'
 
-## Installation
-
-```bash
-npm install browser-extension-capabilities
-```
-
-## Usage
-
-```typescript
-import { getExtensionCapabilities } from 'browser-extension-capabilities'
-
-// Analyze an extension manifest file
-const capabilities = getExtensionCapabilities(
-  './path/to/extension/manifest.json',
-)
-
-// Returns array of capability objects
-console.log(capabilities)
-// [
-//   {
-//     capability: "background",
-//     description: "Background service worker or page for persistent functionality"
-//   },
-//   {
-//     capability: "content_scripts",
-//     description: "Content scripts that run on web pages to interact with page content"
-//   },
-//   {
-//     capability: "popup",
-//     description: "Browser action popup or toolbar button functionality"
-//   }
-// ]
-```
-
-## Supported Capabilities
-
-| Capability          | Description                                                         | Manifest Fields                                                      |
-| ------------------- | ------------------------------------------------------------------- | -------------------------------------------------------------------- |
-| **background**      | Background service worker or page for persistent functionality      | `background.page`, `background.scripts`, `background.service_worker` |
-| **content_scripts** | Content scripts that run on web pages to interact with page content | `content_scripts`                                                    |
-| **popup**           | Browser action popup or toolbar button functionality                | `action.default_popup`                                               |
-| **sidebar**         | Side panel interface for additional extension features              | `side_panel.default_path`, `sidebar_action.default_panel`            |
-| **devtools**        | Developer tools panel for debugging and development                 | `devtools_page`                                                      |
-| **options**         | Extension options page for user configuration                       | `options_ui.page`                                                    |
-| **newtab**          | Custom new tab page replacement                                     | `chrome_url_overrides.newtab`                                        |
-| **bookmarks**       | Custom bookmarks page replacement                                   | `chrome_url_overrides.bookmarks`                                     |
-| **history**         | Custom history page replacement                                     | `chrome_url_overrides.history`                                       |
-| **sandbox**         | Sandboxed pages with restricted permissions for security            | `sandbox.pages`                                                      |
-| **web_resources**   | Web accessible resources for content script communication           | `web_accessible_resources`                                           |
-
-## API Reference
-
-### `getExtensionCapabilities(manifestPath: string): ExtensionCapability[]`
-
-Analyzes a browser extension manifest and returns an array of capability objects.
-
-#### Parameters
-
-- `manifestPath` (string): Direct path to the extension's `manifest.json` file
-
-#### Returns
-
-- `ExtensionCapability[]`: Array of capability objects with `capability` and `description` properties
-
-#### Example
-
-```typescript
-import { getExtensionCapabilities } from 'browser-extension-capabilities'
-
-try {
-  const capabilities = getExtensionCapabilities('./my-extension/manifest.json')
-
-  capabilities.forEach(({ capability, description }) => {
-    console.log(`${capability}: ${description}`)
+// manifest.json → NOT supported items for Safari
+const unsupportedManifest: UnsupportedItem[] =
+  await getUnsupportedManifest('./extension/manifest.json', 'safari', {
+    // includePartialAsUnsupported: false (default)
+    // strict: false (default)
   })
-} catch (error) {
-  console.error('Failed to analyze extension:', error)
+
+// background.js → NOT supported API items for Firefox
+const unsupportedAPIs: UnsupportedItem[] =
+  await getUnsupportedAPIsFromFile('./extension/background.js', 'firefox')
+```
+
+Each `UnsupportedItem` contains:
+- `kind`: `"manifest" | "permission" | "api"`
+- `key`: e.g. `"action"`, `"chrome_url_overrides.history"`, `"runtime.sendMessage"`
+- `path`: full MDN BCD path
+- `reason`: `"not-supported" | "removed" | "partial" | "no-compat-data"`
+- `support`: raw MDN support block (when available)
+
+Example return (abbreviated):
+
+```json
+[
+  {
+    "kind": "manifest",
+    "key": "action",
+    "path": "webextensions.manifest.action",
+    "reason": "not-supported",
+    "support": { "chrome": {"version_added":"88"}, "safari": {"version_added": false} }
+  },
+  {
+    "kind": "api",
+    "key": "runtime.sendMessage",
+    "path": "webextensions.api.runtime.sendMessage",
+    "reason": "removed"
+  }
+]
+```
+
+### Options
+
+```ts
+interface AnalyzeOptions {
+  strict?: boolean
+  includePartialAsUnsupported?: boolean // default false
 }
 ```
 
-### Types
+- strict: when true, the library throws if the compat data directory (`data/webextensions`) is missing. When false (default), it logs a warning and continues; entries with no compat data are returned with `reason: "no-compat-data"`. Because compat data must be present, prefer `strict: true` in CI and production.
+- includePartialAsUnsupported: when true, features marked by MDN as partial implementations are also flagged as `reason: "partial"`. Default is false (partials are treated as supported).
 
-```typescript
-interface ExtensionCapability {
-  capability: string
-  description: string
-}
-```
+Notes:
+- Browser identifiers must match MDN support keys exactly.
+- “Not supported” means MDN shows `version_added` false/null, or the feature is only present with `version_removed`.
+- Partial implementations are considered supported by default (you can set `includePartialAsUnsupported: true`).
 
-## Error Handling
+### Bundler integration enhancements (suggestions)
 
-The library gracefully handles various error scenarios:
+- Report formatting
+  - Emit structured diagnostics with file id/path and `loc` when possible (map API hits to line/column using a lightweight AST or source maps).
+  - Provide severity controls (treat `removed` as error, `not-supported` as warn, `partial` as info).
 
-- **Missing manifest file**: Returns `[{ capability: "manifest", description: "Basic extension manifest configuration" }]`
-- **Invalid JSON**: Returns fallback capability with error logging
-- **Malformed manifest**: Attempts to extract available capabilities and falls back gracefully
+- Performance & caching
+  - Build compat indexes once and cache globally (singleton) to avoid repeated disk reads across plugin/loader instances.
+  - Watch `data/webextensions` and invalidate caches on change.
 
-## Use Cases
+- API analysis accuracy
+  - Prefer a fast AST pass (acorn/swc) over regex to avoid false positives and capture more patterns.
+  - Follow one level of imports/re-exports inside the current build graph for better coverage.
 
-- **Extension Analysis Tools**: Analyze extension capabilities and permissions
-- **Marketplace Validation**: Verify extension capabilities for store listings
-- **Development Tools**: IDE plugins and development utilities
-- **Security Analysis**: Understand extension execution environments
-- **Documentation Generation**: Auto-generate extension documentation
+- Developer experience
+  - Emit a JSON summary artifact containing all unsupported items; also expose it as a virtual module for UIs.
+  - Link report entries to the MDN BCD path or documentation URL.
 
-## Browser Support
+- Adapters per ecosystem
+  - Webpack: loader for JS/TS modules; plugin to validate `manifest.json` and summarize diagnostics. Use `module.resource` and `this.getOptions()`.
+  - Vite/Rollup: plugin using `transform` for modules, `buildStart`/`watchChange` for manifest/data, and `this.emitFile` for the JSON artifact. Use `id` for paths.
+  - esbuild: plugin using `onLoad` for modules, `onResolve` to track manifest path, and `build.onEnd` to output summary; use `args.path` for file ids.
 
-| <img src="https://raw.githubusercontent.com/alrra/browser-logos/main/src/chrome/chrome.svg" width="70"> | <img src="https://raw.githubusercontent.com/alrra/browser-logos/main/src/edge/edge.svg" width="70"> | <img src="https://raw.githubusercontent.com/alrra/browser-logos/main/src/firefox/firefox.svg" width="70"> | <img src="https://raw.githubusercontent.com/alrra/browser-logos/main/src/opera/opera.svg" width="70"> | <img src="https://raw.githubusercontent.com/alrra/browser-logos/main/src/safari/safari.svg" width="70"> | <img src="https://raw.githubusercontent.com/alrra/browser-logos/main/src/chromium/chromium.svg" width="70"> |
-| :-----------------------------------------------------------------------------------------------------: | :-------------------------------------------------------------------------------------------------: | :-------------------------------------------------------------------------------------------------------: | :---------------------------------------------------------------------------------------------------: | :-----------------------------------------------------------------------------------------------------: | :---------------------------------------------------------------------------------------------------------: |
-|                                              Chrome<br>✅                                               |                                             Edge<br>✅                                              |                                               Firefox<br>✅                                               |                                              Opera<br>✅                                              |                                              Safari<br>✅                                               |                                               Chromium<br>✅                                                |
+- Configuration
+  - Allow target versions (e.g., `{ chrome: 120, firefox: 124 }`) and escalate if support < required version.
+  - Option to treat `no-compat-data` as warn or error to catch unknowns in CI.
 
-## License
-
+### License
 MIT (c) Cezar Augusto

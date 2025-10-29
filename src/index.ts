@@ -1,219 +1,334 @@
 import * as fs from 'fs'
+import * as path from 'path'
 
-// Types for better type safety
-interface ExtensionManifest {
-  manifest_version: number
-  name: string
-  version: string
-  description?: string
-  action?: {
-    default_popup?: string
-    default_title?: string
-    default_icon?: string | Record<string, string>
-  }
-  background?: {
-    page?: string
-    scripts?: string[]
-    service_worker?: string
-    'chromium:service_worker'?: string
-    'gecko:scripts'?: string[]
-  }
-  content_scripts?: Array<{
-    matches: string[]
-    js?: string[]
-    css?: string[]
-    run_at?: string
-  }>
-  devtools_page?: string
-  options_ui?: {
-    page: string
-    open_in_tab?: boolean
-  }
-  side_panel?: {
-    default_path: string
-    default_title?: string
-  }
-  sidebar_action?: {
-    default_panel?: string
-    default_title?: string
-  }
-  chrome_url_overrides?: {
-    newtab?: string
-    bookmarks?: string
-    history?: string
-  }
-  sandbox?: {
-    pages: string[]
-  }
-  web_accessible_resources?: Array<{
-    resources: string[]
-    matches: string[]
-  }>
-  permissions?: string[]
-  host_permissions?: string[]
+export interface AnalyzeOptions {
+  strict?: boolean
+  includePartialAsUnsupported?: boolean // default false
 }
 
-interface ExtensionCapability {
-  capability: string
-  description: string
+export type SimpleSupportStatement = {
+  version_added: string | boolean | null
+  version_removed?: string | boolean | null
+  flags?: unknown
+  notes?: string | string[]
+  prefix?: string
+  alternative_name?: string
+  partial_implementation?: boolean
 }
 
-/**
- * Gets extension capabilities as an array of objects with capability and description.
- * Analyzes a browser extension manifest to extract all possible interfaces/capabilities
- * where the extension can run or interact with the browser.
- *
- * @param manifestPath - Direct path to the extension's manifest.json file
- * @returns Array of capability objects with descriptions
- *
- * @example
- * ```typescript
- * const capabilities = getExtensionCapabilities('./extension/manifest.json');
- * // Returns: [
- * //   { capability: "background", description: "Background service worker for persistent functionality" },
- * //   { capability: "content_scripts", description: "Content scripts that run on web pages" },
- * //   { capability: "popup", description: "Browser action popup or toolbar button functionality" }
- * // ]
- * ```
- */
-export function getExtensionCapabilities(
-  manifestPath: string,
-): ExtensionCapability[] {
+export type BrowserSupportMap = Record<string, SimpleSupportStatement | SimpleSupportStatement[]>
+
+export interface UnsupportedItem {
+  kind: 'manifest' | 'permission' | 'api'
+  key: string
+  path: string
+  reason: 'not-supported' | 'removed' | 'partial' | 'no-compat-data'
+  support?: BrowserSupportMap
+}
+
+type ManifestIndex = Map<string, { compatPath: string; node: any }>
+type PermissionIndex = Map<string, { compatPath: string; node: any }>
+type APIIndex = Map<string, { compatPath: string; node: any; sub: Map<string, { compatPath: string; node: any }> }>
+
+function dataRoot(): string {
+  // Fixed location per requirements
+  return path.resolve(process.cwd(), 'data', 'webextensions')
+}
+
+async function pathExists(p: string): Promise<boolean> {
   try {
-    if (!fs.existsSync(manifestPath)) {
-      console.warn(`Manifest file not found at: ${manifestPath}`)
-      return [
-        {
-          capability: 'manifest',
-          description: 'Basic extension manifest configuration',
-        },
-      ]
-    }
-
-    const manifestContent = fs.readFileSync(manifestPath, 'utf8')
-    const manifest: ExtensionManifest = JSON.parse(manifestContent)
-
-    const capabilityMap = new Map<string, ExtensionCapability>()
-
-    // Background capabilities
-    if (manifest.background) {
-      if (
-        manifest.background.page ||
-        manifest.background.scripts?.length ||
-        manifest.background.service_worker ||
-        manifest.background['chromium:service_worker'] ||
-        manifest.background['gecko:scripts']?.length
-      ) {
-        capabilityMap.set('background', {
-          capability: 'background',
-          description:
-            'Background service worker or page for persistent functionality',
-        })
-      }
-    }
-
-    // Content scripts
-    if (manifest.content_scripts && manifest.content_scripts.length > 0) {
-      capabilityMap.set('content_scripts', {
-        capability: 'content_scripts',
-        description:
-          'Content scripts that run on web pages to interact with page content',
-      })
-    }
-
-    // Action popup
-    if (manifest.action?.default_popup) {
-      capabilityMap.set('popup', {
-        capability: 'popup',
-        description: 'Browser action popup or toolbar button functionality',
-      })
-    }
-
-    // Side panel
-    if (
-      manifest.side_panel?.default_path ||
-      manifest.sidebar_action?.default_panel
-    ) {
-      capabilityMap.set('sidebar', {
-        capability: 'sidebar',
-        description: 'Side panel interface for additional extension features',
-      })
-    }
-
-    // DevTools
-    if (manifest.devtools_page) {
-      capabilityMap.set('devtools', {
-        capability: 'devtools',
-        description: 'Developer tools panel for debugging and development',
-      })
-    }
-
-    // Options page
-    if (manifest.options_ui?.page) {
-      capabilityMap.set('options', {
-        capability: 'options',
-        description: 'Extension options page for user configuration',
-      })
-    }
-
-    // Chrome URL overrides
-    if (manifest.chrome_url_overrides) {
-      if (manifest.chrome_url_overrides.newtab) {
-        capabilityMap.set('newtab', {
-          capability: 'newtab',
-          description: 'Custom new tab page replacement',
-        })
-      }
-      if (manifest.chrome_url_overrides.bookmarks) {
-        capabilityMap.set('bookmarks', {
-          capability: 'bookmarks',
-          description: 'Custom bookmarks page replacement',
-        })
-      }
-      if (manifest.chrome_url_overrides.history) {
-        capabilityMap.set('history', {
-          capability: 'history',
-          description: 'Custom history page replacement',
-        })
-      }
-    }
-
-    // Sandbox pages
-    if (manifest.sandbox?.pages && manifest.sandbox.pages.length > 0) {
-      capabilityMap.set('sandbox', {
-        capability: 'sandbox',
-        description: 'Sandboxed pages with restricted permissions for security',
-      })
-    }
-
-    // Web accessible resources (indicates content script interaction)
-    if (
-      manifest.web_accessible_resources &&
-      manifest.web_accessible_resources.length > 0
-    ) {
-      capabilityMap.set('web_resources', {
-        capability: 'web_resources',
-        description:
-          'Web accessible resources for content script communication',
-      })
-    }
-
-    // If no specific interfaces found, return manifest as fallback
-    return capabilityMap.size > 0
-      ? Array.from(capabilityMap.values())
-      : [
-          {
-            capability: 'manifest',
-            description: 'Basic extension manifest configuration',
-          },
-        ]
-  } catch (error) {
-    console.error('Error analyzing extension manifest:', error)
-    return [
-      {
-        capability: 'manifest',
-        description: 'Basic extension manifest configuration',
-      },
-    ]
+    await fs.promises.access(p, fs.constants.F_OK)
+    return true
+  } catch {
+    return false
   }
+}
+
+function readJSON(file: string): any {
+  const raw = fs.readFileSync(file, 'utf8')
+  return JSON.parse(raw)
+}
+
+function toArray<T>(v: T | T[] | undefined): T[] {
+  if (!v) return []
+  return Array.isArray(v) ? v : [v]
+}
+
+type SupportState = { state: 'supported' | 'unsupported' | 'removed' | 'partial' | 'unknown'; reason?: UnsupportedItem['reason'] }
+
+function getSupportStateForBrowser(
+  support: BrowserSupportMap | undefined,
+  browser: string,
+  includePartialAsUnsupported?: boolean,
+): SupportState {
+  if (!support) return { state: 'unknown' }
+
+  const raw = support[browser]
+  const list = toArray<SimpleSupportStatement>(raw)
+
+  if (list.length === 0) return { state: 'unknown' }
+
+  for (const s of list) {
+    const added = s.version_added
+    const removed = s.version_removed
+    const partial = !!s.partial_implementation
+    const isAdded = added === true || typeof added === 'string'
+    const isRemoved = removed === true || typeof removed === 'string'
+
+    if (isAdded && !isRemoved) {
+      if (includePartialAsUnsupported && partial) return { state: 'partial', reason: 'partial' }
+      return { state: 'supported' }
+    }
+  }
+
+  if (list.some((s) => s.version_removed === true || typeof s.version_removed === 'string')) {
+    return { state: 'removed', reason: 'removed' }
+  }
+
+  if (list.every((s) => s.version_added === false || s.version_added === null)) {
+    return { state: 'unsupported', reason: 'not-supported' }
+  }
+
+  return { state: 'unknown' }
+}
+
+async function buildIndexes(dataDir: string): Promise<{
+  manifestIndex: ManifestIndex
+  permissionIndex: PermissionIndex
+  apiIndex: APIIndex
+}> {
+  const manifestIndex: ManifestIndex = new Map()
+  const permissionIndex: PermissionIndex = new Map()
+  const apiIndex: APIIndex = new Map()
+
+  const manifestDir = path.join(dataDir, 'manifest')
+  const permissionsDir = path.join(dataDir, 'permissions')
+  const apiDir = path.join(dataDir, 'api')
+
+  if (await pathExists(manifestDir)) {
+    const files = await fs.promises.readdir(manifestDir)
+    for (const file of files) {
+      if (!file.endsWith('.json')) continue
+      const json = readJSON(path.join(manifestDir, file))
+      const root = json?.webextensions?.manifest
+      if (!root || typeof root !== 'object') continue
+      for (const key of Object.keys(root)) {
+        const node = root[key]
+        manifestIndex.set(key, {
+          compatPath: `webextensions.manifest.${key}`,
+          node,
+        })
+      }
+    }
+  }
+
+  if (await pathExists(permissionsDir)) {
+    const files = await fs.promises.readdir(permissionsDir)
+    for (const file of files) {
+      if (!file.endsWith('.json')) continue
+      const json = readJSON(path.join(permissionsDir, file))
+      const root = json?.webextensions?.permissions
+      if (!root || typeof root !== 'object') continue
+      for (const key of Object.keys(root)) {
+        const node = root[key]
+        permissionIndex.set(key, {
+          compatPath: `webextensions.permissions.${key}`,
+          node,
+        })
+      }
+    }
+  }
+
+  if (await pathExists(apiDir)) {
+    const files = await fs.promises.readdir(apiDir)
+    for (const file of files) {
+      if (!file.endsWith('.json')) continue
+      const json = readJSON(path.join(apiDir, file))
+      const apiRoot = json?.webextensions?.api
+      if (!apiRoot || typeof apiRoot !== 'object') continue
+      for (const ns of Object.keys(apiRoot)) {
+        const node = apiRoot[ns]
+        const sub: Map<string, { compatPath: string; node: any }> = new Map()
+        if (node && typeof node === 'object') {
+          for (const subKey of Object.keys(node)) {
+            if (subKey === '__compat') continue
+            const subNode = node[subKey]
+            if (subNode && typeof subNode === 'object' && '__compat' in subNode) {
+              sub.set(subKey, {
+                compatPath: `webextensions.api.${ns}.${subKey}`,
+                node: subNode,
+              })
+            }
+          }
+        }
+        apiIndex.set(ns, {
+          compatPath: `webextensions.api.${ns}`,
+          node,
+          sub,
+        })
+      }
+    }
+  }
+
+  return { manifestIndex, permissionIndex, apiIndex }
+}
+
+function extractCompat(node: any, compatPath: string): { path: string; support?: BrowserSupportMap } | null {
+  if (!node || typeof node !== 'object') return null
+  const compat = node.__compat
+  if (!compat || typeof compat !== 'object') return { path: compatPath, support: undefined }
+  return { path: compatPath, support: compat.support as BrowserSupportMap }
+}
+
+const MANIFEST_KEY_MAP: Record<string, string[]> = {
+  action: ['action'],
+  browser_action: ['browser_action'],
+  page_action: ['page_action'],
+  background: ['background'],
+  devtools_page: ['devtools_page'],
+  options_ui: ['options_ui'],
+  options_page: ['options_page'],
+  side_panel: ['side_panel'],
+  sidebar_action: ['sidebar_action'],
+  chrome_url_overrides: [
+    'chrome_url_overrides',
+    'chrome_url_overrides.newtab',
+    'chrome_url_overrides.bookmarks',
+    'chrome_url_overrides.history',
+  ],
+  sandbox: ['sandbox'],
+  web_accessible_resources: ['web_accessible_resources'],
+  omnibox: ['omnibox'],
+  commands: ['commands'],
+  chrome_settings_overrides: [
+    'chrome_settings_overrides',
+    'chrome_settings_overrides.homepage',
+    'chrome_settings_overrides.search_provider',
+    'chrome_settings_overrides.startup_pages',
+  ],
+  declarative_net_request: ['declarative_net_request'],
+  tts_engine: ['tts_engine'],
+}
+
+export async function getUnsupportedManifest(
+  manifestPath: string,
+  browser: string,
+  options?: AnalyzeOptions,
+): Promise<UnsupportedItem[]> {
+  const dir = dataRoot()
+  if (!(await pathExists(dir))) {
+    const msg = `Compat data dir not found: ${dir}.`
+    if (options?.strict) throw new Error(msg)
+    console.warn(msg)
+  }
+
+  const { manifestIndex, permissionIndex } = await buildIndexes(dir)
+
+  const content = await fs.promises.readFile(manifestPath, 'utf8')
+  const obj = JSON.parse(content) as Record<string, unknown>
+
+  const out: UnsupportedItem[] = []
+
+  for (const key of Object.keys(MANIFEST_KEY_MAP)) {
+    if (!(key in obj)) continue
+    for (const bcdKey of MANIFEST_KEY_MAP[key]) {
+      const [base, sub] = bcdKey.split('.')
+      const entry = manifestIndex.get(base)
+      if (!entry) {
+        out.push({ kind: 'manifest', key: bcdKey, path: `webextensions.manifest.${bcdKey}`, reason: 'no-compat-data' })
+        continue
+      }
+      if (sub) {
+        const subNode = (entry.node as any)?.[sub]
+        const compat = extractCompat(subNode, `webextensions.manifest.${bcdKey}`)
+        if (!compat) {
+          out.push({ kind: 'manifest', key: bcdKey, path: `webextensions.manifest.${bcdKey}`, reason: 'no-compat-data' })
+          continue
+        }
+        const s = getSupportStateForBrowser(compat.support, browser, options?.includePartialAsUnsupported)
+        if (s.state === 'unsupported' || s.state === 'removed' || s.state === 'partial') {
+          out.push({ kind: 'manifest', key: bcdKey, path: compat.path, reason: s.reason ?? 'not-supported', support: compat.support })
+        }
+      } else {
+        const compat = extractCompat(entry.node, entry.compatPath)
+        if (!compat) {
+          out.push({ kind: 'manifest', key: base, path: entry.compatPath, reason: 'no-compat-data' })
+          continue
+        }
+        const s = getSupportStateForBrowser(compat.support, browser, options?.includePartialAsUnsupported)
+        if (s.state === 'unsupported' || s.state === 'removed' || s.state === 'partial') {
+          out.push({ kind: 'manifest', key: base, path: compat.path, reason: s.reason ?? 'not-supported', support: compat.support })
+        }
+      }
+    }
+  }
+
+  const perms = Array.isArray((obj as any).permissions) ? ((obj as any).permissions as unknown[]) : []
+  for (const permRaw of perms) {
+    const perm = String(permRaw)
+    const entry = permissionIndex.get(perm)
+    if (!entry) {
+      out.push({ kind: 'permission', key: perm, path: `webextensions.permissions.${perm}`, reason: 'no-compat-data' })
+      continue
+    }
+    const compat = extractCompat(entry.node, entry.compatPath)
+    const s = getSupportStateForBrowser(compat?.support, browser, options?.includePartialAsUnsupported)
+    if (s.state === 'unsupported' || s.state === 'removed' || s.state === 'partial') {
+      out.push({ kind: 'permission', key: perm, path: compat!.path, reason: s.reason ?? 'not-supported', support: compat?.support })
+    }
+  }
+
+  return out
+}
+
+export async function getUnsupportedAPIsFromFile(
+  filePath: string,
+  browser: string,
+  options?: AnalyzeOptions,
+): Promise<UnsupportedItem[]> {
+  const dir = dataRoot()
+  if (!(await pathExists(dir))) {
+    const msg = `Compat data dir not found: ${dir}.`
+    if (options?.strict) throw new Error(msg)
+    console.warn(msg)
+  }
+
+  const { apiIndex } = await buildIndexes(dir)
+  const content = await fs.promises.readFile(filePath, 'utf8')
+  const re = /\b(?:chrome|browser)\.([a-zA-Z0-9_]+)(?:\.([a-zA-Z0-9_]+))?/g
+  const seen = new Set<string>()
+  const out: UnsupportedItem[] = []
+
+  let m: RegExpExecArray | null
+  while ((m = re.exec(content))) {
+    const ns = m[1]
+    const sub = m[2]
+    const id = sub ? `${ns}.${sub}` : ns
+    if (seen.has(id)) continue
+    seen.add(id)
+
+    const api = apiIndex.get(ns)
+    if (!api) {
+      out.push({ kind: 'api', key: id, path: `webextensions.api.${id}`, reason: 'no-compat-data' })
+      continue
+    }
+
+    if (sub && api.sub.has(sub)) {
+      const subEntry = api.sub.get(sub)!
+      const compat = extractCompat(subEntry.node, subEntry.compatPath)
+      const s = getSupportStateForBrowser(compat?.support, browser, options?.includePartialAsUnsupported)
+      if (s.state === 'unsupported' || s.state === 'removed' || s.state === 'partial') {
+        out.push({ kind: 'api', key: id, path: compat!.path, reason: s.reason ?? 'not-supported', support: compat?.support })
+      }
+      continue
+    }
+
+    const compat = extractCompat(api.node, api.compatPath)
+    const s = getSupportStateForBrowser(compat?.support, browser, options?.includePartialAsUnsupported)
+    if (s.state === 'unsupported' || s.state === 'removed' || s.state === 'partial') {
+      out.push({ kind: 'api', key: ns, path: compat!.path, reason: s.reason ?? 'not-supported', support: compat?.support })
+    }
+  }
+
+  return out
 }

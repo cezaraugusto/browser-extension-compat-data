@@ -1,333 +1,101 @@
-import { expect, test, describe, beforeEach, afterEach } from 'vitest'
-import { getExtensionCapabilities } from '../src/index'
+import { describe, test, expect, beforeAll, afterAll } from 'vitest'
 import * as fs from 'fs'
 import * as path from 'path'
-import { vi } from 'vitest'
+import { getUnsupportedManifest, getUnsupportedAPIsFromFile } from '../src/index'
 
-// Mock fs module
-vi.mock('fs')
-vi.mock('path')
+function writeJSON(p: string, v: any) {
+  fs.mkdirSync(path.dirname(p), { recursive: true })
+  fs.writeFileSync(p, JSON.stringify(v, null, 2))
+}
 
-describe('getExtensionCapabilities', () => {
-  const mockFs = vi.mocked(fs)
-  const mockPath = vi.mocked(path)
+describe('unsupported analyzers', () => {
+  const root = path.join(process.cwd(), 'data', 'webextensions')
 
-  beforeEach(() => {
-    vi.clearAllMocks()
-    // Mock path.join to return a predictable path (no longer needed but keeping for compatibility)
-    mockPath.join.mockReturnValue('/test/extension/manifest.json')
-  })
-
-  afterEach(() => {
-    vi.restoreAllMocks()
-  })
-
-  test('should return background capability when background scripts are present', () => {
-    const manifest = {
-      manifest_version: 3,
-      name: 'Test Extension',
-      version: '1.0.0',
-      background: {
-        service_worker: 'background.js',
-      },
-    }
-
-    mockFs.existsSync.mockReturnValue(true)
-    mockFs.readFileSync.mockReturnValue(JSON.stringify(manifest))
-
-    const capabilities = getExtensionCapabilities(
-      '/test/extension/manifest.json',
-    )
-
-    expect(capabilities).toContainEqual({
-      capability: 'background',
-      description:
-        'Background service worker or page for persistent functionality',
-    })
-  })
-
-  test('should return content_scripts capability when content scripts are present', () => {
-    const manifest = {
-      manifest_version: 3,
-      name: 'Test Extension',
-      version: '1.0.0',
-      content_scripts: [
-        {
-          matches: ['<all_urls>'],
-          js: ['content.js'],
+  beforeAll(() => {
+    // manifest: action supported only in chrome; not in safari
+    writeJSON(path.join(root, 'manifest', 'action.json'), {
+      webextensions: {
+        manifest: {
+          action: {
+            __compat: {
+              support: {
+                chrome: { version_added: '88' },
+                safari: { version_added: false },
+              },
+            },
+          },
         },
-      ],
-    }
-
-    mockFs.existsSync.mockReturnValue(true)
-    mockFs.readFileSync.mockReturnValue(JSON.stringify(manifest))
-
-    const capabilities = getExtensionCapabilities(
-      '/test/extension/manifest.json',
-    )
-
-    expect(capabilities).toContainEqual({
-      capability: 'content_scripts',
-      description:
-        'Content scripts that run on web pages to interact with page content',
-    })
-  })
-
-  test('should return popup capability when action popup is present', () => {
-    const manifest = {
-      manifest_version: 3,
-      name: 'Test Extension',
-      version: '1.0.0',
-      action: {
-        default_popup: 'popup.html',
       },
-    }
-
-    mockFs.existsSync.mockReturnValue(true)
-    mockFs.readFileSync.mockReturnValue(JSON.stringify(manifest))
-
-    const capabilities = getExtensionCapabilities(
-      '/test/extension/manifest.json',
-    )
-
-    expect(capabilities).toContainEqual({
-      capability: 'popup',
-      description: 'Browser action popup or toolbar button functionality',
     })
-  })
-
-  test('should return sidebar capability when side panel is present', () => {
-    const manifest = {
-      manifest_version: 3,
-      name: 'Test Extension',
-      version: '1.0.0',
-      side_panel: {
-        default_path: 'sidebar.html',
-      },
-    }
-
-    mockFs.existsSync.mockReturnValue(true)
-    mockFs.readFileSync.mockReturnValue(JSON.stringify(manifest))
-
-    const capabilities = getExtensionCapabilities(
-      '/test/extension/manifest.json',
-    )
-
-    expect(capabilities).toContainEqual({
-      capability: 'sidebar',
-      description: 'Side panel interface for additional extension features',
-    })
-  })
-
-  test('should return devtools capability when devtools page is present', () => {
-    const manifest = {
-      manifest_version: 3,
-      name: 'Test Extension',
-      version: '1.0.0',
-      devtools_page: 'devtools.html',
-    }
-
-    mockFs.existsSync.mockReturnValue(true)
-    mockFs.readFileSync.mockReturnValue(JSON.stringify(manifest))
-
-    const capabilities = getExtensionCapabilities(
-      '/test/extension/manifest.json',
-    )
-
-    expect(capabilities).toContainEqual({
-      capability: 'devtools',
-      description: 'Developer tools panel for debugging and development',
-    })
-  })
-
-  test('should return options capability when options page is present', () => {
-    const manifest = {
-      manifest_version: 3,
-      name: 'Test Extension',
-      version: '1.0.0',
-      options_ui: {
-        page: 'options.html',
-      },
-    }
-
-    mockFs.existsSync.mockReturnValue(true)
-    mockFs.readFileSync.mockReturnValue(JSON.stringify(manifest))
-
-    const capabilities = getExtensionCapabilities(
-      '/test/extension/manifest.json',
-    )
-
-    expect(capabilities).toContainEqual({
-      capability: 'options',
-      description: 'Extension options page for user configuration',
-    })
-  })
-
-  test('should return newtab capability when newtab override is present', () => {
-    const manifest = {
-      manifest_version: 3,
-      name: 'Test Extension',
-      version: '1.0.0',
-      chrome_url_overrides: {
-        newtab: 'newtab.html',
-      },
-    }
-
-    mockFs.existsSync.mockReturnValue(true)
-    mockFs.readFileSync.mockReturnValue(JSON.stringify(manifest))
-
-    const capabilities = getExtensionCapabilities(
-      '/test/extension/manifest.json',
-    )
-
-    expect(capabilities).toContainEqual({
-      capability: 'newtab',
-      description: 'Custom new tab page replacement',
-    })
-  })
-
-  test('should return sandbox capability when sandbox pages are present', () => {
-    const manifest = {
-      manifest_version: 3,
-      name: 'Test Extension',
-      version: '1.0.0',
-      sandbox: {
-        pages: ['sandbox.html'],
-      },
-    }
-
-    mockFs.existsSync.mockReturnValue(true)
-    mockFs.readFileSync.mockReturnValue(JSON.stringify(manifest))
-
-    const capabilities = getExtensionCapabilities(
-      '/test/extension/manifest.json',
-    )
-
-    expect(capabilities).toContainEqual({
-      capability: 'sandbox',
-      description: 'Sandboxed pages with restricted permissions for security',
-    })
-  })
-
-  test('should return web_resources capability when web accessible resources are present', () => {
-    const manifest = {
-      manifest_version: 3,
-      name: 'Test Extension',
-      version: '1.0.0',
-      web_accessible_resources: [
-        {
-          resources: ['injected.js'],
-          matches: ['<all_urls>'],
+    // permission: tabs not supported in safari (for test purposes)
+    writeJSON(path.join(root, 'permissions', 'tabs.json'), {
+      webextensions: {
+        permissions: {
+          tabs: {
+            __compat: {
+              support: {
+                chrome: { version_added: '5' },
+                safari: { version_added: false },
+              },
+            },
+          },
         },
-      ],
-    }
-
-    mockFs.existsSync.mockReturnValue(true)
-    mockFs.readFileSync.mockReturnValue(JSON.stringify(manifest))
-
-    const capabilities = getExtensionCapabilities(
-      '/test/extension/manifest.json',
-    )
-
-    expect(capabilities).toContainEqual({
-      capability: 'web_resources',
-      description: 'Web accessible resources for content script communication',
+      },
     })
-  })
-
-  test('should return manifest capability when manifest file is not found', () => {
-    mockFs.existsSync.mockReturnValue(false)
-
-    const capabilities = getExtensionCapabilities(
-      '/test/extension/manifest.json',
-    )
-
-    expect(capabilities).toEqual([
-      {
-        capability: 'manifest',
-        description: 'Basic extension manifest configuration',
-      },
-    ])
-  })
-
-  test('should return manifest capability when manifest JSON is invalid', () => {
-    mockFs.existsSync.mockReturnValue(true)
-    mockFs.readFileSync.mockReturnValue('invalid json')
-
-    const capabilities = getExtensionCapabilities(
-      '/test/extension/manifest.json',
-    )
-
-    expect(capabilities).toEqual([
-      {
-        capability: 'manifest',
-        description: 'Basic extension manifest configuration',
-      },
-    ])
-  })
-
-  test('should return manifest capability when no specific capabilities are found', () => {
-    const manifest = {
-      manifest_version: 3,
-      name: 'Test Extension',
-      version: '1.0.0',
-    }
-
-    mockFs.existsSync.mockReturnValue(true)
-    mockFs.readFileSync.mockReturnValue(JSON.stringify(manifest))
-
-    const capabilities = getExtensionCapabilities(
-      '/test/extension/manifest.json',
-    )
-
-    expect(capabilities).toEqual([
-      {
-        capability: 'manifest',
-        description: 'Basic extension manifest configuration',
-      },
-    ])
-  })
-
-  test('should handle multiple capabilities in a single manifest', () => {
-    const manifest = {
-      manifest_version: 3,
-      name: 'Test Extension',
-      version: '1.0.0',
-      background: {
-        service_worker: 'background.js',
-      },
-      content_scripts: [
-        {
-          matches: ['<all_urls>'],
-          js: ['content.js'],
+    // api: runtime supported; runtime.sendMessage unsupported in safari
+    writeJSON(path.join(root, 'api', 'runtime.json'), {
+      webextensions: {
+        api: {
+          runtime: {
+            __compat: {
+              support: {
+                chrome: { version_added: '5' },
+                safari: { version_added: '14' },
+              },
+            },
+            sendMessage: {
+              __compat: {
+                support: {
+                  chrome: { version_added: '6' },
+                  safari: { version_added: false },
+                },
+              },
+            },
+          },
         },
-      ],
-      action: {
-        default_popup: 'popup.html',
       },
-    }
+    })
+  })
 
-    mockFs.existsSync.mockReturnValue(true)
-    mockFs.readFileSync.mockReturnValue(JSON.stringify(manifest))
+  afterAll(() => {
+    fs.rmSync(path.join(process.cwd(), 'data'), { recursive: true, force: true })
+  })
 
-    const capabilities = getExtensionCapabilities(
-      '/test/extension/manifest.json',
+  test('getUnsupportedManifest returns manifest fields and permissions not supported by target browser', async () => {
+    const manifestFile = path.join(process.cwd(), 'manifest.json')
+    fs.writeFileSync(
+      manifestFile,
+      JSON.stringify({ manifest_version: 3, name: 'x', version: '1.0.0', action: {}, permissions: ['tabs'] }),
     )
 
-    expect(capabilities).toHaveLength(3)
-    expect(capabilities).toContainEqual({
-      capability: 'background',
-      description:
-        'Background service worker or page for persistent functionality',
-    })
-    expect(capabilities).toContainEqual({
-      capability: 'content_scripts',
-      description:
-        'Content scripts that run on web pages to interact with page content',
-    })
-    expect(capabilities).toContainEqual({
-      capability: 'popup',
-      description: 'Browser action popup or toolbar button functionality',
-    })
+    const res = await getUnsupportedManifest(manifestFile, 'safari')
+    const keys = res.map((r) => `${r.kind}:${r.key}`)
+    expect(keys).toContain('manifest:action')
+    expect(keys).toContain('permission:tabs')
+
+    const reasons = new Set(res.map((r) => r.reason))
+    expect(reasons.has('not-supported')).toBe(true)
+  })
+
+  test('getUnsupportedAPIsFromFile returns API items not supported by target browser', async () => {
+    const file = path.join(process.cwd(), 'entry.js')
+    fs.writeFileSync(file, 'chrome.runtime.sendMessage({})')
+
+    const res = await getUnsupportedAPIsFromFile(file, 'safari')
+    const keys = res.map((r) => r.key)
+    expect(keys).toContain('runtime.sendMessage')
+
+    // namespace supported, subfeature unsupported → only the subfeature should appear
+    expect(keys).not.toContain('runtime')
   })
 })

@@ -1,8 +1,8 @@
 {
-  "name": "browser-extension-capabilities",
-  "description": "Zero-dependency library for analyzing browser extension capabilities from manifest files",
+  "name": "browser-extension-compat-data",
+  "description": "Return NOT supported WebExtensions manifest fields and API usages for a given browser using MDN browser-compat-data",
   "packageManager": "pnpm@9.9.0",
-  "version": "1.0.1",
+  "version": "0.1.0",
   "type": "module",
   "exports": {
     ".": {
@@ -18,13 +18,13 @@
   ],
   "keywords": [
     "browser-extension",
+    "webextensions",
+    "compatibility",
     "manifest",
-    "capabilities",
+    "api",
+    "mdn",
+    "browser-compat-data",
     "analysis",
-    "chrome-extension",
-    "firefox-extension",
-    "edge-extension",
-    "webextension",
     "typescript",
     "zero-dependency"
   ],
@@ -32,12 +32,15 @@
   "license": "MIT",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/cezaraugusto/browser-extension-capabilities.git"
+    "url": "git+https://github.com/cezaraugusto/browser-extension-compat-data.git"
   },
   "bugs": {
-    "url": "https://github.com/cezaraugusto/browser-extension-capabilities/issues"
+    "url": "https://github.com/cezaraugusto/browser-extension-compat-data/issues"
   },
-  "homepage": "https://github.com/cezaraugusto/browser-extension-capabilities#readme",
+  "homepage": "https://github.com/cezaraugusto/browser-extension-compat-data#readme",
+  "publishConfig": {
+    "provenance": true
+  },
   "engines": {
     "node": ">=14.0.0"
   },
@@ -47,7 +50,8 @@
     "format": "prettier --write .",
     "lint": "eslint .",
     "test": "vitest run",
-    "prepublishOnly": "npm run build"
+    "prepublishOnly": "npm run build",
+    "publish:provenance": "np patch --no-tests --any-branch --yolo --message 'release: %s' --provenance"
   },
   "devDependencies": {
     "@eslint/js": "^9.25.1",

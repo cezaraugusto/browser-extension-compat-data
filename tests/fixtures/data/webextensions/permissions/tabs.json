@@ -1,0 +1,16 @@
+{
+  "webextensions": {
+    "permissions": {
+      "tabs": {
+        "__compat": {
+          "support": {
+            "chrome": { "version_added": "5" },
+            "safari": { "version_added": false }
+          }
+        }
+      }
+    }
+  }
+}
+
+
