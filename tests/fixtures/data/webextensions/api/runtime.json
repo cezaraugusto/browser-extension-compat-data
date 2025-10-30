@@ -10,6 +10,7 @@
         },
         "sendMessage": {
           "__compat": {
+            "mdn_url": "https://developer.mozilla.org/docs/Mozilla/Add-ons/WebExtensions/API/runtime/sendMessage",
             "support": {
               "chrome": { "version_added": "6" },
               "safari": { "version_added": false }
@@ -20,5 +21,3 @@
     }
   }
 }
-
-

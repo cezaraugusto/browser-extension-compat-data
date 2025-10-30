@@ -4,7 +4,7 @@ on:
   workflow_dispatch:
     inputs:
       version:
-        description: "Exact version to publish (e.g., 0.1.1). Required."
+        description: 'Exact version to publish (e.g., 0.1.1). Required.'
         required: true
         type: string
 
@@ -65,5 +65,3 @@ jobs:
           npm version "$VERSION" -m "release: %s" --workspace=browser-extension-compat-data
           git push --follow-tags
           npm publish --provenance --access public --workspace=browser-extension-compat-data
-
-

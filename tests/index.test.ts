@@ -1,7 +1,10 @@
 import { describe, test, expect, beforeAll, afterAll } from 'vitest'
 import * as fs from 'fs'
 import * as path from 'path'
-import { getUnsupportedManifest, getUnsupportedAPIsFromFile } from '../src/index'
+import {
+  getUnsupportedManifest,
+  getUnsupportedAPIsFromFile,
+} from '../src/index'
 
 function writeJSON(p: string, v: any) {
   fs.mkdirSync(path.dirname(p), { recursive: true })
@@ -68,14 +71,23 @@ describe('unsupported analyzers', () => {
   })
 
   afterAll(() => {
-    fs.rmSync(path.join(process.cwd(), 'data'), { recursive: true, force: true })
+    fs.rmSync(path.join(process.cwd(), 'data'), {
+      recursive: true,
+      force: true,
+    })
   })
 
   test('getUnsupportedManifest returns manifest fields and permissions not supported by target browser', async () => {
     const manifestFile = path.join(process.cwd(), 'manifest.json')
     fs.writeFileSync(
       manifestFile,
-      JSON.stringify({ manifest_version: 3, name: 'x', version: '1.0.0', action: {}, permissions: ['tabs'] }),
+      JSON.stringify({
+        manifest_version: 3,
+        name: 'x',
+        version: '1.0.0',
+        action: {},
+        permissions: ['tabs'],
+      }),
     )
 
     const res = await getUnsupportedManifest(manifestFile, 'safari')

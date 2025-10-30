@@ -8,7 +8,7 @@ on:
   workflow_dispatch:
     inputs:
       version:
-        description: "Exact version to publish (e.g., 1.0.1). Required."
+        description: 'Exact version to publish (e.g., 1.0.1). Required.'
         required: true
         type: string
 
@@ -73,5 +73,3 @@ jobs:
             exit 1
           fi
           npx np "$VERSION" --no-tests --any-branch --yolo --message "release: %s" --provenance
-
-
