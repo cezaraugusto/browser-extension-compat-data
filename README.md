@@ -1,85 +1,84 @@
 [npm-version-image]: https://img.shields.io/npm/v/browser-extension-compat-data.svg?color=0971fe
 [npm-version-url]: https://www.npmjs.com/package/browser-extension-compat-data
+[npm-downloads-image]: https://img.shields.io/npm/dm/browser-extension-compat-data.svg?color=2ecc40
+[npm-downloads-url]: https://www.npmjs.com/package/browser-extension-compat-data
+[action-image]: https://github.com/cezaraugusto/browser-extension-compat-data/actions/workflows/ci.yml/badge.svg?branch=main
+[action-url]: https://github.com/cezaraugusto/browser-extension-compat-data/actions
 
-[![Version][npm-version-image]][npm-version-url]
+[![Version][npm-version-image]][npm-version-url] [![Downloads][npm-downloads-image]][npm-downloads-url] [![workflow][action-image]][action-url]
 
-### browser-extension-compat-data
+# browser-extension-compat-data
 
-Return NOT supported WebExtensions manifest fields and API usages for a given browser, using MDN Browser Compat Data for WebExtensions.
+Validate your browser extension/WebExtension for unsupported manifest fields (and optionally permissions/APIs) using MDN Browser Compat Data.
 
 - Data source: [MDN browser-compat-data (webextensions)](https://github.com/mdn/browser-compat-data/tree/main/webextensions)
 
-### Data
+## Install
 
-This package reads BCD from `data/webextensions` (committed by CI). There is no runtime fetch and no override option. The compat data MUST exist at runtime; if it does not, treat it as a setup error. For CI and production builds, enable `strict: true` to fail fast when data is missing.
+```bash
+npm i -D browser-extension-compat-data
+# or
+pnpm add -D browser-extension-compat-data
+# or
+yarn add -D browser-extension-compat-data
+```
 
-### API
+## Quickstart
 
 ```ts
 import {
-  getUnsupportedManifest,
+  getUnsupportedManifestFields,
   getUnsupportedAPIsFromFile,
-  listBrowsers,
-  hasBrowserKey,
-  getMinSupportedVersion,
-  isSupported,
-  analyzeFiles,
-  analyzeProject,
-  generateBaselineMatrix,
-  toSARIF,
-  toJUnitXML,
-  toNDJSON,
   type UnsupportedItem,
 } from 'browser-extension-compat-data'
 
-// manifest.json → NOT supported items for Safari
-const unsupportedManifest: UnsupportedItem[] = await getUnsupportedManifest(
+// Manifest: unsupported items for Safari 17
+const manifestFindings: UnsupportedItem[] = await getUnsupportedManifestFields(
   './extension/manifest.json',
-  'safari',
-  {
-    // includePartialAsUnsupported: false (default)
-    // strict: false (default)
-  },
+  { browser: 'safari', version: '17' },
 )
 
-// background.js → NOT supported API items for Firefox
-const unsupportedAPIs: UnsupportedItem[] = await getUnsupportedAPIsFromFile(
-  './extension/background.js',
-  'firefox',
-)
-
-// utilities
-const browsers = await listBrowsers()
-const hasSafari = await hasBrowserKey('safari')
-const minChrome = await getMinSupportedVersion(
-  'webextensions.api.runtime.sendMessage',
-  'chrome',
-) // "6"
-const ok = await isSupported(
-  'webextensions.api.runtime.sendMessage',
-  'chrome',
-  '6',
-) // true
-
-// project-level analysis
-const proj = await analyzeProject({
-  files: ['src/bg.js'],
-  manifestPath: 'manifest.json',
+// Version is optional (ignore version gating)
+await getUnsupportedManifestFields('./extension/manifest.json', {
   browser: 'safari',
 })
-// proj = { unsupported, missingPermissions, unusedPermissions }
 
-// baseline matrix across targets
-const matrix = await generateBaselineMatrix({
-  files: ['src/bg.js'],
-  manifestPath: 'manifest.json',
-  targets: { chrome: '120', firefox: '124', safari: '17' },
+// File: unsupported APIs for Firefox (fast scan by default)
+const apiFindings: UnsupportedItem[] = await getUnsupportedAPIsFromFile(
+  './extension/background.js',
+  { browser: 'firefox', version: '124' },
+)
+
+// Accurate mode parses AST (avoids false positives in strings/comments)
+await getUnsupportedAPIsFromFile('./extension/background.js', {
+  browser: 'firefox',
+  scanMode: 'accurate',
 })
+```
 
-// reporters
-const sarif = toSARIF(unsupportedAPIs)
-const junit = toJUnitXML(unsupportedAPIs)
-const ndjson = toNDJSON(unsupportedAPIs)
+## API
+
+```ts
+type ManifestOptions = {
+  browser: string
+  version?: string // optional
+}
+
+type FileOptions = {
+  browser: string
+  version?: string // optional
+  scanMode?: 'fast' | 'accurate' // default: 'fast'
+}
+
+function getUnsupportedManifestFields(
+  manifestPath: string,
+  options: ManifestOptions,
+): Promise<UnsupportedItem[]>
+
+function getUnsupportedAPIsFromFile(
+  filePath: string,
+  options: FileOptions,
+): Promise<UnsupportedItem[]>
 ```
 
 Each `UnsupportedItem` contains:
@@ -89,91 +88,53 @@ Each `UnsupportedItem` contains:
 - `path`: full MDN BCD path
 - `reason`: `"not-supported" | "removed" | "partial" | "no-compat-data"`
 - `support`: raw MDN support block (when available)
-- `mdnUrl`: MDN documentation URL when available from BCD
+- `mdnUrl`: MDN documentation URL when available
 
-Example return (abbreviated):
+## Performance
 
-```json
-[
-  {
-    "kind": "manifest",
-    "key": "action",
-    "path": "webextensions.manifest.action",
-    "reason": "not-supported",
-    "support": {
-      "chrome": { "version_added": "88" },
-      "safari": { "version_added": false }
-    }
-  },
-  {
-    "kind": "api",
-    "key": "runtime.sendMessage",
-    "path": "webextensions.api.runtime.sendMessage",
-    "reason": "removed"
-  }
-]
-```
+- Prebuilt indexes are cached in-process with mtime-based invalidation.
+- Fast scan: streaming regex with a small rolling buffer; minimal memory and very fast.
+- Accurate scan: single AST parse via acorn; slower but avoids matches in strings/comments.
 
-### Options
+## Data
+
+This package reads MDN BCD from `data/webextensions` (committed or provisioned by CI). There is no runtime fetch and no override option. The compat data MUST exist at runtime; otherwise, entries may be returned with `reason: "no-compat-data"`.
+
+### What gets synced
+
+- Only the MDN WebExtensions manifest data is synced automatically:
+  - Source: `mdn/browser-compat-data/webextensions/manifest`
+  - Destination in this repo: `data/webextensions/manifest`
+- Permissions and API directories may be empty unless you populate them yourself.
+
+### Update cadence
+
+- A GitHub Actions workflow runs daily at 00:00 UTC to sync manifest data and automatically commits to `main` when changes are detected.
+- You can also trigger it manually from the Actions tab ("Update MDN WebExtensions manifest data").
+
+### Local development
+
+If you want to run validations locally without CI-provisioned data, ensure `data/webextensions/manifest` contains JSON files from the MDN BCD `webextensions/manifest` folder.
+
+### Permissions checking
+
+- `getUnsupportedManifestFields` checks permissions by default. To skip permission checks (manifest-only validation), pass `checkPermissions: false`:
 
 ```ts
-interface AnalyzeOptions {
-  strict?: boolean
-  includePartialAsUnsupported?: boolean // default false
-}
+await getUnsupportedManifestFields('./extension/manifest.json', {
+  browser: 'safari',
+  version: '17',
+  checkPermissions: false,
+})
 ```
 
-- strict: when true, the library throws if the compat data directory (`data/webextensions`) is missing. When false (default), it logs a warning and continues; entries with no compat data are returned with `reason: "no-compat-data"`. Because compat data must be present, prefer `strict: true` in CI and production.
-- includePartialAsUnsupported: when true, features marked by MDN as partial implementations are also flagged as `reason: "partial"`. Default is false (partials are treated as supported).
+## FAQ
 
-### Precomputed index (CI)
+- What does “not supported” mean?
+  - MDN shows `version_added` false/null, or the feature only appears with `version_removed`.
+- Do you validate unknown manifest keys?
+  - No. Only keys covered by MDN BCD in this package (e.g., `action`, `background`, selected nested keys) and permissions.
 
-- Generate a single index for fast lookups during runtime/builds:
-
-```bash
-pnpm run data:build-index
-```
-
-This writes `data/webextensions.index.json` containing precomputed paths that can be loaded quickly by tools.
-
-Notes:
-
-- Browser identifiers must match MDN support keys exactly.
-- “Not supported” means MDN shows `version_added` false/null, or the feature is only present with `version_removed`.
-- Partial implementations are considered supported by default (you can set `includePartialAsUnsupported: true`).
-
-### Bundler integration (generic suggestions)
-
-- Report formatting
-
-  - Emit structured diagnostics with file id/path and `loc` when possible (map API hits to line/column using a lightweight AST or source maps).
-  - Provide severity controls (treat `removed` as error, `not-supported` as warn, `partial` as info).
-
-- Performance & caching
-
-  - Build compat indexes once and cache globally (singleton) to avoid repeated disk reads across plugin/loader instances.
-  - Watch `data/webextensions` and invalidate caches on change.
-
-- API analysis accuracy
-
-  - Prefer a fast AST pass (acorn/swc) over regex to avoid false positives and capture more patterns.
-  - Follow one level of imports/re-exports inside the current build graph for better coverage.
-
-- Developer experience
-
-  - Emit a JSON summary artifact containing all unsupported items; also expose it as a virtual module for UIs.
-  - Link report entries to the MDN BCD path or documentation URL.
-
-- Adapters per ecosystem
-
-  - Webpack: loader for JS/TS modules; plugin to validate `manifest.json` and summarize diagnostics. Use `module.resource` and `this.getOptions()`.
-  - Vite/Rollup: plugin using `transform` for modules, `buildStart`/`watchChange` for manifest/data, and `this.emitFile` for the JSON artifact. Use `id` for paths.
-  - esbuild: plugin using `onLoad` for modules, `onResolve` to track manifest path, and `build.onEnd` to output summary; use `args.path` for file ids.
-
-- Configuration
-  - Allow target versions (e.g., `{ chrome: 120, firefox: 124 }`) and escalate if support < required version.
-  - Option to treat `no-compat-data` as warn or error to catch unknowns in CI.
-
-### License
+## License
 
 MIT (c) Cezar Augusto

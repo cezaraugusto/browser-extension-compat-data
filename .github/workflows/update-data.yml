@@ -1,0 +1,58 @@
+name: Update MDN WebExtensions manifest data
+
+on:
+  schedule:
+    - cron: '0 0 * * *' # every day at 00:00 UTC
+  workflow_dispatch: {}
+
+permissions:
+  contents: write
+
+jobs:
+  update-data:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Checkout MDN browser-compat-data (manifest only)
+        uses: actions/checkout@v4
+        with:
+          repository: mdn/browser-compat-data
+          path: mdn-bcd
+          fetch-depth: 1
+          sparse-checkout: |
+            webextensions/manifest
+          sparse-checkout-cone-mode: false
+
+      - name: Prepare destination folder
+        run: |
+          mkdir -p data/webextensions/manifest
+
+      - name: Sync manifest data from MDN
+        run: |
+          rsync -av --delete --include '*/' --include '*.json' --exclude '*' \
+            mdn-bcd/webextensions/manifest/ data/webextensions/manifest/
+
+      - name: Configure git
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+
+      - name: Commit and push if changes
+        run: |
+          if ! git status --porcelain | grep -E '^\s*[MADRCU]'; then
+            echo "No changes detected. Skipping commit."
+            exit 0
+          fi
+          git add data/webextensions/manifest
+          if git diff --cached --quiet; then
+            echo "No staged changes. Skipping commit."
+            exit 0
+          fi
+          git commit -m "chore(data): auto-sync MDN WebExtensions manifest compat data"
+          git push
+
+

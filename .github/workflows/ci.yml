@@ -1,4 +1,4 @@
-name: CI
+name: '🛠️'
 on:
   push:
     branches: [main]
@@ -28,4 +28,4 @@ jobs:
         run: pnpm install --no-frozen-lockfile
 
       - name: Run tests
-        run: pnpm --filter browser-extension-compat-data test
+        run: pnpm test

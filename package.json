@@ -1,6 +1,6 @@
 {
   "name": "browser-extension-compat-data",
-  "description": "Return NOT supported WebExtensions manifest fields and API usages for a given browser using MDN browser-compat-data",
+  "description": "Validate WebExtensions manifest (and optionally permissions/APIs) against MDN browser-compat-data",
   "packageManager": "pnpm@9.9.0",
   "version": "0.1.0",
   "type": "module",
