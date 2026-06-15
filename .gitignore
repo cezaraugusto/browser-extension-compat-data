@@ -8,6 +8,10 @@ node_modules
 dist/
 storybook-static
 
+# Raw MDN compat data (transient; only the compact src/generated/index.json is committed)
+/data
+/mdn-bcd
+
 # IDE
 .vscode/*
 !.vscode/extensions.json

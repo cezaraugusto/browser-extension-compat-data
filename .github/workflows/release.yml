@@ -65,4 +65,3 @@ jobs:
           npm version "$VERSION" -m "release: %s"
           git push --follow-tags
           npm publish --provenance --access public
-

@@ -1,65 +1,60 @@
-import { BrowserSupportMap, SimpleSupportStatement } from './types'
+import { CompactFeature, CompactSupport, Reason, SupportInfo } from './types'
+import { isBelowMinVersion } from './version'
 
-export function toArray<T>(value: T | T[] | undefined): T[] {
-  if (!value) return []
-  return Array.isArray(value) ? value : [value]
+export interface Verdict {
+  ok: boolean
+  reason?: Reason
 }
 
-export function extractCompat(
-  node: any,
-  compatPath: string,
-): { path: string; support?: BrowserSupportMap; mdnUrl?: string } | null {
-  if (!node || typeof node !== 'object') return null
-  const compat = node.__compat
-  if (!compat || typeof compat !== 'object')
-    return { path: compatPath, support: undefined }
+function isAdded(s: CompactSupport): boolean {
+  return s.a === true || typeof s.a === 'string'
+}
+
+function isRemoved(s: CompactSupport): boolean {
+  return s.r === true || typeof s.r === 'string'
+}
+
+/** Normalize compact support into the friendly public shape. */
+export function normalizeSupport(s: CompactSupport): SupportInfo {
   return {
-    path: compatPath,
-    support: compat.support as BrowserSupportMap,
-    mdnUrl: (compat as any).mdn_url as string | undefined,
+    supported: isAdded(s) && !isRemoved(s) && !s.f,
+    versionAdded: s.a,
+    versionRemoved: s.r,
+    partial: s.p,
+    flagged: s.f,
   }
 }
 
-export type SupportState = {
-  state: 'supported' | 'unsupported' | 'removed' | 'partial' | 'unknown'
-  reason?: 'not-supported' | 'removed' | 'partial' | 'no-compat-data'
+/** Normalize a whole feature's support map. */
+export function normalizeFeature(
+  feature: CompactFeature,
+): Record<string, SupportInfo> {
+  const out: Record<string, SupportInfo> = {}
+  for (const browser of Object.keys(feature.s)) {
+    out[browser] = normalizeSupport(feature.s[browser])
+  }
+  return out
 }
 
-export function getSupportStateForBrowser(
-  support: BrowserSupportMap | undefined,
-  browserKey: string,
-  includePartialAsUnsupported?: boolean,
-): SupportState {
-  if (!support) return { state: 'unknown' }
-
-  const raw = support[browserKey]
-  const list = toArray<SimpleSupportStatement>(raw)
-  if (list.length === 0) return { state: 'unknown' }
-
-  for (const s of list) {
-    const added = s.version_added
-    const removed = s.version_removed
-    const partial = !!s.partial_implementation
-    const isAdded = added === true || typeof added === 'string'
-    const isRemoved = removed === true || typeof removed === 'string'
-    if (isAdded && !isRemoved) {
-      if (includePartialAsUnsupported && partial)
-        return { state: 'partial', reason: 'partial' }
-      return { state: 'supported' }
-    }
+/**
+ * Decide whether a feature is a compatibility problem for a target
+ * browser/version. A browser with no statement is treated as "unknown" and
+ * left unflagged (BCD silence is not evidence of breakage). Flagged and
+ * partial implementations are surfaced as caveats, not hard failures.
+ */
+export function verdictForBrowser(
+  feature: CompactFeature,
+  browser: string,
+  version?: string,
+): Verdict {
+  const s = feature.s[browser]
+  if (!s) return { ok: true }
+  if (isRemoved(s)) return { ok: false, reason: 'removed' }
+  if (!isAdded(s)) return { ok: false, reason: 'not-supported' }
+  if (version && typeof s.a === 'string' && isBelowMinVersion(s.a, version)) {
+    return { ok: false, reason: 'not-supported' }
   }
-
-  if (list.some((s) => s.version_removed === true || typeof s.version_removed === 'string')) {
-    return { state: 'removed', reason: 'removed' }
-  }
-
-  if (list.every((s) => s.version_added === false || s.version_added === null)) {
-    return { state: 'unsupported', reason: 'not-supported' }
-  }
-
-  return { state: 'unknown' }
+  if (s.f) return { ok: false, reason: 'flag' }
+  if (s.p) return { ok: false, reason: 'partial' }
+  return { ok: true }
 }
-
-
-
-

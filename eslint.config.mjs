@@ -6,5 +6,9 @@ export default [
   { languageOptions: { globals: globals.browser } },
   js.configs.recommended,
   ...ts.configs.recommended,
+  {
+    files: ['scripts/**/*.mjs', 'bin/**/*.mjs'],
+    languageOptions: { globals: globals.node },
+  },
   { ignores: ['dist/'] },
 ]

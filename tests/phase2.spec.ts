@@ -1,35 +1,49 @@
 import { describe, test, expect, beforeAll, afterAll } from 'vitest'
+import * as fs from 'fs'
+import * as os from 'os'
 import * as path from 'path'
-import { getUnsupportedAPIsFromFile } from '../src/index'
+import {
+  getUnsupportedAPIsFromFile,
+  setIndex,
+  resetIndex,
+  type CompactIndex,
+} from '../src/index'
 
-const originalCwd = process.cwd()
-const fixturesDir = path.join(__dirname, 'fixtures')
+const INDEX: CompactIndex = {
+  manifest: {},
+  permissions: {},
+  api: {
+    runtime: { s: { chrome: { a: '5' } } },
+    'runtime.sendMessage': { s: { chrome: { a: '6' } } },
+  },
+}
 
 describe('version-aware API checks', () => {
+  let entry: string
+
   beforeAll(() => {
-    process.chdir(fixturesDir)
+    setIndex(INDEX)
+    entry = path.join(
+      fs.mkdtempSync(path.join(os.tmpdir(), 'becd-')),
+      'entry.js',
+    )
+    fs.writeFileSync(entry, 'chrome.runtime.sendMessage({})')
   })
-  afterAll(() => {
-    process.chdir(originalCwd)
-  })
+  afterAll(() => resetIndex())
 
   test('runtime.sendMessage unsupported when target version is below minimum', async () => {
-    const entry = path.join(fixturesDir, 'entry.js')
     const res = await getUnsupportedAPIsFromFile(entry, {
       browser: 'chrome',
       version: '5',
     })
-    const keys = res.map((r) => r.key)
-    expect(keys).toContain('runtime.sendMessage')
+    expect(res.map((r) => r.key)).toContain('runtime.sendMessage')
   })
 
   test('runtime.sendMessage supported when target version meets minimum', async () => {
-    const entry = path.join(fixturesDir, 'entry.js')
     const res = await getUnsupportedAPIsFromFile(entry, {
       browser: 'chrome',
       version: '6',
     })
-    const keys = res.map((r) => r.key)
-    expect(keys).not.toContain('runtime.sendMessage')
+    expect(res.map((r) => r.key)).not.toContain('runtime.sendMessage')
   })
 })

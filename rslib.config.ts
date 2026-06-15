@@ -12,4 +12,9 @@ export default defineConfig({
       syntax: ['node 18'],
     },
   ],
+  output: {
+    // Ship the compact index as a single asset next to the bundles instead of
+    // inlining it into both ESM and CJS outputs.
+    copy: [{ from: './src/generated/index.json', to: 'index.json' }],
+  },
 })

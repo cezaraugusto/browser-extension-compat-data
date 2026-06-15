@@ -1,4 +1,4 @@
-name: Update MDN WebExtensions manifest data
+name: Update MDN WebExtensions compat data
 
 on:
   schedule:
@@ -17,24 +17,21 @@ jobs:
         with:
           fetch-depth: 0
 
-      - name: Checkout MDN browser-compat-data (manifest only)
+      - name: Checkout MDN browser-compat-data (webextensions only)
         uses: actions/checkout@v4
         with:
           repository: mdn/browser-compat-data
           path: mdn-bcd
           fetch-depth: 1
           sparse-checkout: |
+            /package.json
             webextensions/manifest
+            webextensions/api
+            webextensions/permissions
           sparse-checkout-cone-mode: false
 
-      - name: Prepare destination folder
-        run: |
-          mkdir -p data/webextensions/manifest
-
-      - name: Sync manifest data from MDN
-        run: |
-          rsync -av --delete --include '*/' --include '*.json' --exclude '*' \
-            mdn-bcd/webextensions/manifest/ data/webextensions/manifest/
+      - name: Build compact index + key types
+        run: node scripts/build-index.mjs mdn-bcd/webextensions src/generated/index.json
 
       - name: Configure git
         run: |
@@ -43,16 +40,10 @@ jobs:
 
       - name: Commit and push if changes
         run: |
-          if ! git status --porcelain | grep -E '^\s*[MADRCU]'; then
+          git add src/generated/index.json src/generated/keys.ts
+          if git diff --cached --quiet; then
             echo "No changes detected. Skipping commit."
             exit 0
           fi
-          git add data/webextensions/manifest
-          if git diff --cached --quiet; then
-            echo "No staged changes. Skipping commit."
-            exit 0
-          fi
-          git commit -m "chore(data): auto-sync MDN WebExtensions manifest compat data"
+          git commit -m "chore(data): auto-sync MDN WebExtensions compat index"
           git push
-
-

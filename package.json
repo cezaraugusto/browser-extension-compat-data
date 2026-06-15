@@ -13,8 +13,12 @@
   },
   "main": "./dist/index.cjs",
   "types": "./dist/index.d.ts",
+  "bin": {
+    "browser-extension-compat-data": "./bin/cli.mjs"
+  },
   "files": [
-    "dist"
+    "dist",
+    "bin"
   ],
   "keywords": [
     "browser-extension",
@@ -42,7 +46,7 @@
     "provenance": true
   },
   "engines": {
-    "node": ">=14.0.0"
+    "node": ">=18"
   },
   "devDependencies": {
     "@eslint/js": "^9.25.1",
@@ -64,8 +68,8 @@
     "format": "prettier --write .",
     "lint": "eslint .",
     "test": "vitest run",
+    "data:build-index": "node scripts/build-index.mjs",
     "prepublishOnly": "npm run build",
-    "publish:provenance": "np patch --no-tests --any-branch --yolo --message 'release: %s' --provenance",
-    "data:build-index": "pnpm build && node -e 'const m=require(\"./dist/index.cjs\"); if(m.buildPrecomputedIndex){m.buildPrecomputedIndex().then(()=>console.log(\"index built\")).catch(e=>{console.error(e);process.exit(1)})}else{console.error(\"buildPrecomputedIndex not exported\");process.exit(1)}'"
+    "publish:provenance": "np patch --no-tests --any-branch --yolo --message 'release: %s' --provenance"
   }
 }

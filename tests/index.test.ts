@@ -1,84 +1,44 @@
 import { describe, test, expect, beforeAll, afterAll } from 'vitest'
 import * as fs from 'fs'
+import * as os from 'os'
 import * as path from 'path'
 import {
   getUnsupportedManifest,
   getUnsupportedAPIsFromFile,
+  setIndex,
+  resetIndex,
+  type CompactIndex,
 } from '../src/index'
 
-function writeJSON(p: string, v: any) {
-  fs.mkdirSync(path.dirname(p), { recursive: true })
-  fs.writeFileSync(p, JSON.stringify(v, null, 2))
+const INDEX: CompactIndex = {
+  v: 'test',
+  manifest: {
+    action: { s: { chrome: { a: '88' }, safari: { a: false } } },
+  },
+  permissions: {
+    tabs: { s: { chrome: { a: '5' }, safari: { a: false } } },
+  },
+  api: {
+    runtime: { s: { chrome: { a: '5' }, safari: { a: '14' } } },
+    'runtime.sendMessage': { s: { chrome: { a: '6' }, safari: { a: false } } },
+  },
 }
 
 describe('unsupported analyzers', () => {
-  const root = path.join(process.cwd(), 'data', 'webextensions')
+  let tmp: string
 
   beforeAll(() => {
-    // manifest: action supported only in chrome; not in safari
-    writeJSON(path.join(root, 'manifest', 'action.json'), {
-      webextensions: {
-        manifest: {
-          action: {
-            __compat: {
-              support: {
-                chrome: { version_added: '88' },
-                safari: { version_added: false },
-              },
-            },
-          },
-        },
-      },
-    })
-    // permission: tabs not supported in safari (for test purposes)
-    writeJSON(path.join(root, 'permissions', 'tabs.json'), {
-      webextensions: {
-        permissions: {
-          tabs: {
-            __compat: {
-              support: {
-                chrome: { version_added: '5' },
-                safari: { version_added: false },
-              },
-            },
-          },
-        },
-      },
-    })
-    // api: runtime supported; runtime.sendMessage unsupported in safari
-    writeJSON(path.join(root, 'api', 'runtime.json'), {
-      webextensions: {
-        api: {
-          runtime: {
-            __compat: {
-              support: {
-                chrome: { version_added: '5' },
-                safari: { version_added: '14' },
-              },
-            },
-            sendMessage: {
-              __compat: {
-                support: {
-                  chrome: { version_added: '6' },
-                  safari: { version_added: false },
-                },
-              },
-            },
-          },
-        },
-      },
-    })
+    setIndex(INDEX)
+    tmp = fs.mkdtempSync(path.join(os.tmpdir(), 'becd-'))
   })
 
   afterAll(() => {
-    fs.rmSync(path.join(process.cwd(), 'data'), {
-      recursive: true,
-      force: true,
-    })
+    resetIndex()
+    fs.rmSync(tmp, { recursive: true, force: true })
   })
 
   test('getUnsupportedManifest returns manifest fields and permissions not supported by target browser', async () => {
-    const manifestFile = path.join(process.cwd(), 'manifest.json')
+    const manifestFile = path.join(tmp, 'manifest.json')
     fs.writeFileSync(
       manifestFile,
       JSON.stringify({
@@ -100,7 +60,7 @@ describe('unsupported analyzers', () => {
   })
 
   test('getUnsupportedAPIsFromFile returns API items not supported by target browser', async () => {
-    const file = path.join(process.cwd(), 'entry.js')
+    const file = path.join(tmp, 'entry.js')
     fs.writeFileSync(file, 'chrome.runtime.sendMessage({})')
 
     const res = await getUnsupportedAPIsFromFile(file, 'safari')

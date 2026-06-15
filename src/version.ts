@@ -1,73 +1,32 @@
-import { BrowserSupportMap, SimpleSupportStatement } from './types'
-import { getIndexes, getNodeByPathFromIndexes } from './data'
-import { extractCompat } from './compat'
+/** Strip BCD decorations like a leading `≤` (e.g. `"≤37"`) and whitespace. */
+function clean(version: string): string {
+  return version.replace(/^[≤<>=~^\s]+/, '').trim()
+}
 
-export function minSupportedVersionFromSupport(
-  support: BrowserSupportMap | undefined,
-  browserKey: string,
-): string | null {
-  if (!support) return null
-  const s = support[browserKey]
-  const list = Array.isArray(s)
-    ? (s as SimpleSupportStatement[])
-    : s
-      ? [s as SimpleSupportStatement]
-      : []
-  for (const st of list) {
-    if (st.version_added === true) return 'true'
-    if (typeof st.version_added === 'string') return st.version_added
+/**
+ * Compare two dotted version strings segment-by-segment (so `15.10` sorts
+ * above `15.4`, unlike a naive parseFloat). Missing segments are treated as 0.
+ * Returns <0 if a<b, 0 if equal, >0 if a>b, or NaN if either is unparseable.
+ */
+export function compareVersions(a: string, b: string): number {
+  const pa = clean(a).split('.')
+  const pb = clean(b).split('.')
+  const len = Math.max(pa.length, pb.length)
+  for (let i = 0; i < len; i++) {
+    const na = parseInt(pa[i] ?? '0', 10)
+    const nb = parseInt(pb[i] ?? '0', 10)
+    if (Number.isNaN(na) || Number.isNaN(nb)) return NaN
+    if (na !== nb) return na - nb
   }
-  return null
+  return 0
 }
 
-export function parseNumericVersion(version: string): number {
-  const m = version.match(/\d+(?:\.\d+)?/)
-  return m ? parseFloat(m[0]) : NaN
+/**
+ * True when `target` is older than the minimum supported `min` version.
+ * Unparseable inputs are treated as "not below" (no false positive).
+ */
+export function isBelowMinVersion(min: string, target: string): boolean {
+  const cmp = compareVersions(target, min)
+  if (Number.isNaN(cmp)) return false
+  return cmp < 0
 }
-
-export function isBelowMinVersion(
-  support: BrowserSupportMap | undefined,
-  browserKey: string,
-  targetVersion?: string,
-): boolean {
-  if (!targetVersion) return false
-  const min = minSupportedVersionFromSupport(support, browserKey)
-  if (!min || min === 'true') return false
-  const minN = parseNumericVersion(min)
-  const targetN = parseNumericVersion(targetVersion)
-  if (Number.isNaN(minN) || Number.isNaN(targetN)) return false
-  return targetN < minN
-}
-
-export async function getMinSupportedVersionInternal(
-  featurePath: string,
-  browserKey: string,
-): Promise<string | null> {
-  const indexes = await getIndexes()
-  const node = getNodeByPathFromIndexes(indexes, featurePath)
-  const compat = extractCompat(node, featurePath)
-  return minSupportedVersionFromSupport(compat?.support, browserKey)
-}
-
-export async function isSupportedInternal(
-  featurePath: string,
-  browserKey: string,
-  version?: string,
-): Promise<boolean> {
-  const indexes = await getIndexes()
-  const node = getNodeByPathFromIndexes(indexes, featurePath)
-  const compat = extractCompat(node, featurePath)
-  const stateSupport = compat?.support
-  if (!stateSupport) return false
-  const min = await getMinSupportedVersionInternal(featurePath, browserKey)
-  if (!min || min === 'true') return true
-  if (!version) return true
-  const minN = parseNumericVersion(min)
-  const targetN = parseNumericVersion(version)
-  if (Number.isNaN(minN) || Number.isNaN(targetN)) return true
-  return targetN >= minN
-}
-
-
-
-
