@@ -1,4 +1,4 @@
-import { Browser } from './types'
+import type {Browser} from './types'
 
 /** Canonical list of browsers covered by MDN WebExtensions compat data. */
 export const BROWSERS: readonly Browser[] = [
@@ -8,7 +8,7 @@ export const BROWSERS: readonly Browser[] = [
   'firefox_android',
   'opera',
   'safari',
-  'safari_ios',
+  'safari_ios'
 ] as const
 
 const BROWSER_SET = new Set<string>(BROWSERS)
@@ -20,10 +20,10 @@ const ALIASES: Record<string, Browser> = {
   fennec: 'firefox_android',
   'safari-ios': 'safari_ios',
   ios: 'safari_ios',
-  ios_saf: 'safari_ios',
+  ios_saf: 'safari_ios'
 }
 
-export function isKnownBrowser(value: string): value is Browser {
+export function isKnownBrowser (value: string): value is Browser {
   return BROWSER_SET.has(value)
 }
 
@@ -32,11 +32,14 @@ export function isKnownBrowser(value: string): value is Browser {
  * accepting a few common aliases. Throws on anything unrecognized so a typo
  * can never silently pass validation.
  */
-export function assertBrowser(value: string): Browser {
+export function assertBrowser (value: string): Browser {
   if (isKnownBrowser(value)) return value
+
   const alias = ALIASES[value.toLowerCase()]
+
   if (alias) return alias
+
   throw new Error(
-    `Unknown browser "${value}". Expected one of: ${BROWSERS.join(', ')}.`,
+    `Unknown browser "${value}". Expected one of: ${BROWSERS.join(', ')}.`
   )
 }

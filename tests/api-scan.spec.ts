@@ -1,12 +1,14 @@
-import { describe, test, expect, beforeAll, afterAll } from 'vitest'
 import * as fs from 'fs'
 import * as os from 'os'
 import * as path from 'path'
+
+import {describe, test, expect, beforeAll, afterAll} from 'vitest'
+
 import {
   getUnsupportedAPIsFromFile,
   setIndex,
   resetIndex,
-  type CompactIndex,
+  type CompactIndex
 } from '../src/index'
 
 const INDEX: CompactIndex = {
@@ -14,27 +16,30 @@ const INDEX: CompactIndex = {
   permissions: {},
   api: {
     tabs: {
-      s: { chrome: { a: '1' }, firefox: { a: '1' }, safari: { a: '14' } },
+      s: {chrome: {a: '1'}, firefox: {a: '1'}, safari: {a: '14'}}
     },
     'tabs.query': {
-      s: { chrome: { a: '1' }, firefox: { a: '1' }, safari: { a: '14' } },
+      s: {chrome: {a: '1'}, firefox: {a: '1'}, safari: {a: '14'}}
     },
     scripting: {
-      s: { chrome: { a: '88' }, firefox: { a: '101' }, safari: { a: false } },
+      s: {chrome: {a: '88'}, firefox: {a: '101'}, safari: {a: false}}
     },
     'scripting.executeScript': {
-      s: { chrome: { a: '88' }, firefox: { a: '101' }, safari: { a: false } },
+      s: {chrome: {a: '88'}, firefox: {a: '101'}, safari: {a: false}}
     },
     'storage.local': {
-      s: { chrome: { a: '1' }, firefox: { a: '1' }, safari: { a: '14' } },
-    },
-  },
+      s: {chrome: {a: '1'}, firefox: {a: '1'}, safari: {a: '14'}}
+    }
+  }
 }
 
 let dir: string
-function write(name: string, src: string): string {
+
+function write (name: string, src: string): string {
   const p = path.join(dir, name)
+
   fs.writeFileSync(p, src)
+
   return p
 }
 
@@ -45,7 +50,7 @@ describe('API scanner (accurate)', () => {
   })
   afterAll(() => {
     resetIndex()
-    fs.rmSync(dir, { recursive: true, force: true })
+    fs.rmSync(dir, {recursive: true, force: true})
   })
 
   test('resolves destructuring + polyfill default import + aliasing, with locations', async () => {
@@ -57,23 +62,27 @@ describe('API scanner (accurate)', () => {
         'const { executeScript } = scripting',
         'executeScript({})',
         'browser.tabs.query({})',
-        'chrome.storage.local.get()',
-      ].join('\n'),
+        'chrome.storage.local.get()'
+      ].join('\n')
     )
+
     const res = await getUnsupportedAPIsFromFile(file, {
       browser: 'safari',
-      scanMode: 'accurate',
+      scanMode: 'accurate'
     })
+
     const keys = res.map((r) => r.key)
-    // scripting.executeScript (destructured twice) unsupported in safari
+
+    // Scripting.executeScript (destructured twice) unsupported in safari
     expect(keys).toContain('scripting.executeScript')
-    // browser.tabs.query via polyfill -> tabs.query, supported in safari 14
+    // Browser.tabs.query via polyfill -> tabs.query, supported in safari 14
     expect(keys).not.toContain('tabs.query')
-    // storage.local supported
+    // Storage.local supported
     expect(keys).not.toContain('storage.local')
 
     const finding = res.find((r) => r.key === 'scripting.executeScript')!
-    expect(finding.loc?.line).toBe(4) // the executeScript({}) call
+
+    expect(finding.loc?.line).toBe(4) // The executeScript({}) call
     expect(finding.file).toBe(file)
   })
 
@@ -82,19 +91,22 @@ describe('API scanner (accurate)', () => {
       'alias.js',
       [
         "const ext = require('webextension-polyfill')",
-        'ext.scripting.executeScript({})',
-      ].join('\n'),
+        'ext.scripting.executeScript({})'
+      ].join('\n')
     )
+
     const res = await getUnsupportedAPIsFromFile(file, {
       browser: 'safari',
-      scanMode: 'accurate',
+      scanMode: 'accurate'
     })
+
     expect(res.map((r) => r.key)).toContain('scripting.executeScript')
   })
 
   test('fast mode still catches direct chains', async () => {
     const file = write('direct.js', 'chrome.scripting.executeScript({})')
-    const res = await getUnsupportedAPIsFromFile(file, { browser: 'safari' })
+    const res = await getUnsupportedAPIsFromFile(file, {browser: 'safari'})
+
     expect(res.map((r) => r.key)).toContain('scripting.executeScript')
   })
 })

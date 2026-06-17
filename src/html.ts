@@ -20,31 +20,37 @@ const NON_JS_TYPES = new Set([
   'application/ld+json',
   'importmap',
   'text/html',
-  'text/template',
+  'text/template'
 ])
 
 /** Extract external and inline scripts from an HTML document (regex-based, zero-dep). */
-export function extractScripts(html: string): HtmlScripts {
+export function extractScripts (html: string): HtmlScripts {
   const external: string[] = []
   const inline: InlineScript[] = []
   let match: RegExpExecArray | null
+
   SCRIPT_RE.lastIndex = 0
   while ((match = SCRIPT_RE.exec(html))) {
     const attrs = match[1] ?? ''
     const body = match[2] ?? ''
     const type = attrs.match(TYPE_RE)?.[1]?.toLowerCase()
+
     if (type && NON_JS_TYPES.has(type)) continue
 
     const src = attrs.match(SRC_RE)?.[1]
+
     if (src) {
       external.push(src)
       continue
     }
+
     if (body.trim()) {
       const before = html.slice(0, match.index + match[0].indexOf(body))
       const line = before.split('\n').length
-      inline.push({ content: body, line })
+
+      inline.push({content: body, line})
     }
   }
-  return { external, inline }
+
+  return {external, inline}
 }

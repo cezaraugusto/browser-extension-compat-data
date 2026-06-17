@@ -1,6 +1,7 @@
-import { describe, test, expect } from 'vitest'
-import { compareVersions } from '../src/index'
-import { isBelowMinVersion } from '../src/version'
+import {describe, test, expect} from 'vitest'
+
+import {compareVersions} from '../src/index'
+import {isBelowMinVersion} from '../src/version'
 
 describe('version compare', () => {
   test('compares segment-by-segment (15.10 > 15.4)', () => {

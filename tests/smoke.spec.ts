@@ -1,11 +1,12 @@
-import { describe, test, expect, beforeAll } from 'vitest'
+import {describe, test, expect, beforeAll} from 'vitest'
+
 import {
   isSupported,
   getMinVersion,
   getMdnUrl,
   hasFeature,
   getIndex,
-  resetIndex,
+  resetIndex
 } from '../src/index'
 
 /**
@@ -17,6 +18,7 @@ describe('real-data smoke', () => {
 
   test('index has real provenance and substantial coverage', () => {
     const idx = getIndex()
+
     expect(idx.v).not.toBe('placeholder')
     expect(idx.v).not.toBe('empty')
     expect(Object.keys(idx.manifest).length).toBeGreaterThan(100)
@@ -25,22 +27,23 @@ describe('real-data smoke', () => {
   })
 
   test('known compatibility truths', () => {
-    // side_panel is Chrome/Edge/Opera only.
+    // Side_panel is Chrome/Edge/Opera only.
     expect(isSupported('manifest', 'side_panel', 'chrome')).toBe(true)
     expect(isSupported('manifest', 'side_panel', 'firefox')).toBe(false)
 
-    // runtime.sendMessage works everywhere including Safari.
+    // Runtime.sendMessage works everywhere including Safari.
     expect(isSupported('api', 'runtime.sendMessage', 'safari')).toBe(true)
 
-    // action landed in Chrome 88.
+    // Action landed in Chrome 88.
     expect(getMinVersion('manifest', 'action', 'chrome')).toBe('88')
 
-    // offscreen is a real BCD coverage gap (not indexed).
+    // Offscreen is a real BCD coverage gap (not indexed).
     expect(hasFeature('permissions', 'offscreen')).toBe(false)
   })
 
   test('MDN url falls back deterministically when BCD has none', () => {
     const url = getMdnUrl('permissions', 'tabs')
+
     expect(url).toContain('developer.mozilla.org')
   })
 })

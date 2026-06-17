@@ -6,24 +6,24 @@ export type Domain = 'manifest' | 'api' | 'permissions'
  * extension support, so there is no `chrome_android`.)
  */
 export type Browser =
-  | 'chrome'
-  | 'edge'
-  | 'firefox'
-  | 'firefox_android'
-  | 'opera'
-  | 'safari'
-  | 'safari_ios'
+  | 'chrome' |
+  'edge' |
+  'firefox' |
+  'firefox_android' |
+  'opera' |
+  'safari' |
+  'safari_ios'
 
 /**
  * Compact per-browser support, reduced from MDN BCD's verbose support
  * statements to the few fields lookups and validators actually need.
  */
 export interface CompactSupport {
-  /** version_added (minimum): a version string, `true` (since forever) or `false`/`null` (known-unsupported). */
+  /** Version_added (minimum): a version string, `true` (since forever) or `false`/`null` (known-unsupported). */
   a: string | boolean | null
-  /** version_removed, when the feature was dropped. */
+  /** Version_removed, when the feature was dropped. */
   r?: string | boolean
-  /** partial_implementation flag. */
+  /** Partial_implementation flag. */
   p?: boolean
   /** Behind a runtime/config flag (BCD `flags`); not on by default. */
   f?: boolean
@@ -31,13 +31,13 @@ export interface CompactSupport {
 
 /** One flattened BCD feature: its MDN url and per-browser support. */
 export interface CompactFeature {
-  /** mdn_url, when MDN documents the feature. */
+  /** Mdn_url, when MDN documents the feature. */
   u?: string
-  /** browser key -> compact support. */
+  /** Browser key -> compact support. */
   s: Record<string, CompactSupport>
 }
 
-/** dotted feature key (e.g. `runtime.sendMessage`) -> feature. */
+/** Dotted feature key (e.g. `runtime.sendMessage`) -> feature. */
 export type DomainMap = Record<string, CompactFeature>
 
 /** The single precomputed index shipped with the package. */
@@ -66,12 +66,12 @@ export interface Target {
 }
 
 export type Reason =
-  | 'not-supported'
-  | 'removed'
-  | 'partial'
-  | 'flag'
-  | 'manifest-version'
-  | 'no-compat-data'
+  | 'not-supported' |
+  'removed' |
+  'partial' |
+  'flag' |
+  'manifest-version' |
+  'no-compat-data'
 
 /** Source position of an API usage (1-based line, 0-based column). */
 export interface SourceLocation {

@@ -1,16 +1,18 @@
 import * as fs from 'fs'
 import * as path from 'path'
-import { ExtensionReport, Target, TargetReport, UnsupportedItem } from './types'
-import { apiNamespaces } from './store'
-import { assertBrowser } from './browsers'
-import { evaluateManifest } from './manifest'
+
+import {apiNamespaces} from './store'
+import {assertBrowser} from './browsers'
+import {evaluateManifest} from './manifest'
 import {
-  Candidate,
   collectApiCandidates,
   collectFromContent,
-  evaluateApiCandidates,
+  evaluateApiCandidates
 } from './api'
-import { extractScripts } from './html'
+import {extractScripts} from './html'
+
+import type {Candidate} from './api'
+import type {ExtensionReport, Target, TargetReport, UnsupportedItem} from './types'
 
 export interface AnalyzeOptions {
   /** Manifest permission checks. Default: true. */
@@ -30,10 +32,13 @@ interface Source {
   candidates: Candidate[]
 }
 
-function resolveManifestPath(input: string): string {
+function resolveManifestPath (input: string): string {
   const stat = fs.existsSync(input) ? fs.statSync(input) : null
+
   if (stat?.isFile()) return input
+
   const candidate = path.join(input, 'manifest.json')
+
   if (!fs.existsSync(candidate)) {
     throw new Error(`No manifest.json found at "${input}".`)
   }
@@ -43,10 +48,10 @@ function resolveManifestPath(input: string): string {
 const SCRIPT_EXT = new Set(['.js', '.mjs', '.cjs', '.ts', '.tsx', '.jsx'])
 const SKIP_DIRS = new Set(['node_modules', '.git', 'dist', 'build'])
 
-function globFiles(dir: string, exts: Set<string>): string[] {
+function globFiles (dir: string, exts: Set<string>): string[] {
   const out: string[] = []
   const walk = (d: string) => {
-    for (const entry of fs.readdirSync(d, { withFileTypes: true })) {
+    for (const entry of fs.readdirSync(d, {withFileTypes: true})) {
       if (entry.isDirectory()) {
         if (!SKIP_DIRS.has(entry.name)) walk(path.join(d, entry.name))
       } else if (exts.has(path.extname(entry.name))) {
@@ -54,19 +59,21 @@ function globFiles(dir: string, exts: Set<string>): string[] {
       }
     }
   }
+
   walk(dir)
+
   return out
 }
 
-function asString(v: unknown): string | undefined {
+function asString (v: unknown): string | undefined {
   return typeof v === 'string' ? v : undefined
 }
 
 /** HTML entry-points the manifest can reference (popups, options, devtools, overrides…). */
-function htmlEntrypoints(manifest: Json): string[] {
-  const out: (string | undefined)[] = []
+function htmlEntrypoints (manifest: Json): string[] {
+  const out: Array<string | undefined> = []
   const get = (obj: unknown, key: string): Json | undefined =>
-    obj && typeof obj === 'object' ? ((obj as Json)[key] as Json) : undefined
+    (obj && typeof obj === 'object' ? ((obj as Json)[key] as Json) : undefined)
 
   out.push(asString(get(manifest, 'action')?.default_popup))
   out.push(asString(get(manifest, 'browser_action')?.default_popup))
@@ -78,21 +85,26 @@ function htmlEntrypoints(manifest: Json): string[] {
   out.push(asString(get(manifest, 'sidebar_action')?.default_panel))
   out.push(asString(get(manifest, 'side_panel')?.default_path))
   const overrides = get(manifest, 'chrome_url_overrides')
+
   for (const k of ['newtab', 'bookmarks', 'history']) {
     out.push(asString(overrides?.[k]))
   }
+
   return out.filter((s): s is string => !!s && !s.includes('://'))
 }
 
-function manifestReferencedScripts(dir: string, manifest: Json): string[] {
+function manifestReferencedScripts (dir: string, manifest: Json): string[] {
   const rels: string[] = []
   const bg = manifest.background as Json | undefined
+
   if (bg) {
     if (typeof bg.service_worker === 'string') rels.push(bg.service_worker)
+
     if (Array.isArray(bg.scripts)) {
       for (const s of bg.scripts) if (typeof s === 'string') rels.push(s)
     }
   }
+
   if (Array.isArray(manifest.content_scripts)) {
     for (const cs of manifest.content_scripts as Json[]) {
       if (Array.isArray(cs?.js)) {
@@ -105,12 +117,12 @@ function manifestReferencedScripts(dir: string, manifest: Json): string[] {
 
 const exists = (f: string) => fs.existsSync(f) && fs.statSync(f).isFile()
 
-async function gatherSources(
+async function gatherSources (
   dir: string,
   manifest: Json,
   options: AnalyzeOptions,
   scanMode: 'fast' | 'accurate',
-  namespaces: Set<string>,
+  namespaces: Set<string>
 ): Promise<Source[]> {
   const jsFiles = new Set<string>()
   const htmlFiles = new Set<string>()
@@ -120,27 +132,30 @@ async function gatherSources(
     for (const f of globFiles(dir, new Set(['.html', '.htm']))) htmlFiles.add(f)
   } else {
     for (const f of manifestReferencedScripts(dir, manifest)) jsFiles.add(f)
-    for (const h of htmlEntrypoints(manifest))
-      htmlFiles.add(path.resolve(dir, h))
+    for (const h of htmlEntrypoints(manifest)) { htmlFiles.add(path.resolve(dir, h)) }
   }
+
   for (const extra of options.files ?? []) jsFiles.add(path.resolve(dir, extra))
 
   // Follow HTML: external <script src> become JS files; inline scripts are scanned in place.
-  const inline: { rel: string; content: string; lineOffset: number }[] = []
+  const inline: Array<{rel: string; content: string; lineOffset: number}> = []
+
   for (const html of htmlFiles) {
     if (!exists(html)) continue
-    const { external, inline: blocks } = extractScripts(
-      fs.readFileSync(html, 'utf8'),
+
+    const {external, inline: blocks} = extractScripts(
+      fs.readFileSync(html, 'utf8')
     )
+
     for (const src of external) {
-      if (!src.includes('://'))
-        jsFiles.add(path.resolve(path.dirname(html), src))
+      if (!src.includes('://')) { jsFiles.add(path.resolve(path.dirname(html), src)) }
     }
+
     for (const block of blocks) {
       inline.push({
         rel: path.relative(dir, html),
         content: block.content,
-        lineOffset: block.line - 1,
+        lineOffset: block.line - 1
       })
     }
   }
@@ -150,24 +165,24 @@ async function gatherSources(
       .filter(exists)
       .map(async (file) => ({
         rel: path.relative(dir, file),
-        candidates: await collectApiCandidates(file, scanMode, namespaces),
-      })),
+        candidates: await collectApiCandidates(file, scanMode, namespaces)
+      }))
   )
 
   const inlineSources = await Promise.all(
-    inline.map(async ({ rel, content, lineOffset }) => {
+    inline.map(async ({rel, content, lineOffset}) => {
       const candidates = (
         await collectFromContent(content, scanMode, namespaces)
       ).map((c) =>
-        c.loc
+        (c.loc
           ? {
               ...c,
-              loc: { line: c.loc.line + lineOffset, column: c.loc.column },
+              loc: {line: c.loc.line + lineOffset, column: c.loc.column}
             }
-          : c,
-      )
-      return { rel, candidates }
-    }),
+          : c))
+
+      return {rel, candidates}
+    })
   )
 
   return [...fileSources, ...inlineSources]
@@ -177,10 +192,10 @@ async function gatherSources(
  * Analyze a whole extension (manifest + referenced source, including scripts
  * inside HTML entry-points) against one or more browser/version targets.
  */
-export async function analyzeExtension(
+export async function analyzeExtension (
   input: string,
   targets: Target[],
-  options: AnalyzeOptions = {},
+  options: AnalyzeOptions = {}
 ): Promise<ExtensionReport> {
   const manifestPath = resolveManifestPath(input)
   const dir = path.dirname(manifestPath)
@@ -195,7 +210,7 @@ export async function analyzeExtension(
     manifest,
     options,
     scanMode,
-    namespaces,
+    namespaces
   )
 
   const targetReports: TargetReport[] = targets.map((t) => {
@@ -204,8 +219,9 @@ export async function analyzeExtension(
       manifest,
       browser,
       t.version,
-      checkPermissions,
+      checkPermissions
     )
+
     for (const src of sources) {
       findings.push(
         ...evaluateApiCandidates(
@@ -213,17 +229,18 @@ export async function analyzeExtension(
           browser,
           t.version,
           namespaces,
-          src.rel,
-        ),
+          src.rel
+        )
       )
     }
-    return { target: { browser, version: t.version }, findings }
+
+    return {target: {browser, version: t.version}, findings}
   })
 
   return {
     manifestPath,
     scannedFiles: Array.from(new Set(sources.map((s) => s.rel))),
     targets: targetReports,
-    ok: targetReports.every((r) => r.findings.length === 0),
+    ok: targetReports.every((r) => r.findings.length === 0)
   }
 }

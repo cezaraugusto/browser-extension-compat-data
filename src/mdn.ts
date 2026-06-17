@@ -1,4 +1,4 @@
-import { Domain } from './types'
+import type {Domain} from './types'
 
 const BASE = 'https://developer.mozilla.org/docs/Mozilla/Add-ons/WebExtensions'
 
@@ -7,10 +7,11 @@ const BASE = 'https://developer.mozilla.org/docs/Mozilla/Add-ons/WebExtensions'
  * when BCD carries no explicit `mdn_url`. Deterministic, but not guaranteed to
  * resolve for every nested key.
  */
-export function buildMdnUrl(domain: Domain, key: string): string {
+export function buildMdnUrl (domain: Domain, key: string): string {
   if (domain === 'manifest') {
     return `${BASE}/manifest.json/${key.split('.')[0]}`
   }
+
   if (domain === 'permissions') {
     return `${BASE}/manifest.json/permissions`
   }
