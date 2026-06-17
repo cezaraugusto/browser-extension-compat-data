@@ -5,9 +5,9 @@
 [action-image]: https://github.com/cezaraugusto/browser-extension-compat-data/actions/workflows/ci.yml/badge.svg?branch=main
 [action-url]: https://github.com/cezaraugusto/browser-extension-compat-data/actions
 
-[![Version][npm-version-image]][npm-version-url] [![Downloads][npm-downloads-image]][npm-downloads-url] [![workflow][action-image]][action-url]
+> Validate WebExtensions manifest (and optionally permissions/APIs) against MDN browser-compat-data
 
-# browser-extension-compat-data
+# browser-extension-compat-data [![Version][npm-version-image]][npm-version-url] [![Downloads][npm-downloads-image]][npm-downloads-url] [![workflow][action-image]][action-url]
 
 MDN WebExtensions compatibility data , **manifest fields, APIs, and permissions** , in one lean package. Query whether a feature is supported in a browser/version (lookup), lint a whole extension across multiple targets (validate), or wire it into ESLint.
 
@@ -180,4 +180,4 @@ node scripts/build-index.mjs path/to/browser-compat-data/webextensions src/gener
 
 ## License
 
-MIT (c) Cezar Augusto
+MIT (c) Cezar Augusto.
