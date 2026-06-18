@@ -68,5 +68,6 @@
     "prepublishOnly": "npm run build",
     "publish:provenance": "np patch --no-tests --any-branch --yolo --message 'release: %s' --provenance",
     "lint:fix": "eslint . --fix"
-  }
+  },
+  "sideEffects": false
 }
