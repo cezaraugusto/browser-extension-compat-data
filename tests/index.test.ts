@@ -39,7 +39,7 @@ describe('unsupported analyzers', () => {
     fs.rmSync(tmp, {recursive: true, force: true})
   })
 
-  test('getUnsupportedManifest returns manifest fields and permissions not supported by target browser', async () => {
+  it('getUnsupportedManifest returns manifest fields and permissions not supported by target browser', async () => {
     const manifestFile = path.join(tmp, 'manifest.json')
 
     fs.writeFileSync(
@@ -64,7 +64,7 @@ describe('unsupported analyzers', () => {
     expect(reasons.has('not-supported')).toBe(true)
   })
 
-  test('getUnsupportedAPIsFromFile returns API items not supported by target browser', async () => {
+  it('getUnsupportedAPIsFromFile returns API items not supported by target browser', async () => {
     const file = path.join(tmp, 'entry.js')
 
     fs.writeFileSync(file, 'chrome.runtime.sendMessage({})')

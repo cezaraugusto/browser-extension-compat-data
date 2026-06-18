@@ -53,7 +53,7 @@ describe('API scanner (accurate)', () => {
     fs.rmSync(dir, {recursive: true, force: true})
   })
 
-  test('resolves destructuring + polyfill default import + aliasing, with locations', async () => {
+  it('resolves destructuring + polyfill default import + aliasing, with locations', async () => {
     const file = write(
       'bg.js',
       [
@@ -86,7 +86,7 @@ describe('API scanner (accurate)', () => {
     expect(finding.file).toBe(file)
   })
 
-  test('custom polyfill alias is followed', async () => {
+  it('custom polyfill alias is followed', async () => {
     const file = write(
       'alias.js',
       [
@@ -103,7 +103,7 @@ describe('API scanner (accurate)', () => {
     expect(res.map((r) => r.key)).toContain('scripting.executeScript')
   })
 
-  test('fast mode still catches direct chains', async () => {
+  it('fast mode still catches direct chains', async () => {
     const file = write('direct.js', 'chrome.scripting.executeScript({})')
     const res = await getUnsupportedAPIsFromFile(file, {browser: 'safari'})
 

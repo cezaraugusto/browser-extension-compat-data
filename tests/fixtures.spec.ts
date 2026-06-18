@@ -45,7 +45,7 @@ describe('fixtures demo', () => {
     fs.rmSync(tmp, {recursive: true, force: true})
   })
 
-  test('manifest fixture: unsupported items for safari', async () => {
+  it('manifest fixture: unsupported items for safari', async () => {
     const res = await getUnsupportedManifest(
       path.join(tmp, 'manifest.json'),
       'safari'
@@ -57,7 +57,7 @@ describe('fixtures demo', () => {
     expect(keys).toContain('permission:tabs')
   })
 
-  test('api fixture: runtime.sendMessage unsupported in safari', async () => {
+  it('api fixture: runtime.sendMessage unsupported in safari', async () => {
     const res = await getUnsupportedAPIsFromFile(
       path.join(tmp, 'entry.js'),
       'safari'

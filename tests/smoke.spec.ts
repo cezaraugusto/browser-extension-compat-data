@@ -16,7 +16,7 @@ import {
 describe('real-data smoke', () => {
   beforeAll(() => resetIndex())
 
-  test('index has real provenance and substantial coverage', () => {
+  it('index has real provenance and substantial coverage', () => {
     const idx = getIndex()
 
     expect(idx.v).not.toBe('placeholder')
@@ -26,7 +26,7 @@ describe('real-data smoke', () => {
     expect(Object.keys(idx.permissions).length).toBeGreaterThan(20)
   })
 
-  test('known compatibility truths', () => {
+  it('known compatibility truths', () => {
     // Side_panel is Chrome/Edge/Opera only.
     expect(isSupported('manifest', 'side_panel', 'chrome')).toBe(true)
     expect(isSupported('manifest', 'side_panel', 'firefox')).toBe(false)
@@ -41,7 +41,7 @@ describe('real-data smoke', () => {
     expect(hasFeature('permissions', 'offscreen')).toBe(false)
   })
 
-  test('MDN url falls back deterministically when BCD has none', () => {
+  it('MDN url falls back deterministically when BCD has none', () => {
     const url = getMdnUrl('permissions', 'tabs')
 
     expect(url).toContain('developer.mozilla.org')

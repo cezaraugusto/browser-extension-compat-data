@@ -58,7 +58,7 @@ describe('analyzeExtension (multi-target)', () => {
     fs.rmSync(dir, {recursive: true, force: true})
   })
 
-  test('reports per-target, scanning referenced sources', async () => {
+  it('reports per-target, scanning referenced sources', async () => {
     const report = await analyzeExtension(dir, [
       {browser: 'chrome', version: '120'},
       {browser: 'firefox', version: '121'}
@@ -85,7 +85,7 @@ describe('analyzeExtension (multi-target)', () => {
     expect(apiFinding.file).toBe('bg.js')
   })
 
-  test('throws on a bad manifest path', async () => {
+  it('throws on a bad manifest path', async () => {
     await expect(
       analyzeExtension('/no/such/dir', [{browser: 'chrome'}])
     ).rejects.toThrow()

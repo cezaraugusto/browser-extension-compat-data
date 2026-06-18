@@ -54,13 +54,13 @@ describe('eslint webext-compat rule (alias-aware)', () => {
   beforeAll(() => setIndex(INDEX))
   afterAll(() => resetIndex())
 
-  test('flags direct chrome.* usage unsupported in a target', () => {
+  it('flags direct chrome.* usage unsupported in a target', () => {
     const msgs = lint('chrome.scripting.executeScript({})', ['safari16'])
 
     expect(msgs.some((m) => m.includes('scripting.executeScript'))).toBe(true)
   })
 
-  test('resolves destructuring + polyfill default import', () => {
+  it('resolves destructuring + polyfill default import', () => {
     const src = [
       "import browser from 'webextension-polyfill'",
       'const { scripting } = chrome',
@@ -76,13 +76,13 @@ describe('eslint webext-compat rule (alias-aware)', () => {
     expect(msgs.some((m) => m.includes('tabs.query'))).toBe(false)
   })
 
-  test('no messages when everything is supported', () => {
+  it('no messages when everything is supported', () => {
     expect(
       lint('chrome.tabs.query({})', ['chrome120', 'firefox115'])
     ).toHaveLength(0)
   })
 
-  test('destructured namespace + member is reported once, not twice', () => {
+  it('destructured namespace + member is reported once, not twice', () => {
     const msgs = lint(
       'const { scripting } = chrome\nscripting.executeScript({})',
       ['safari16']

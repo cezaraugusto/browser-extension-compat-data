@@ -33,7 +33,7 @@ describe('lookup API', () => {
   beforeAll(() => setIndex(INDEX))
   afterAll(() => resetIndex())
 
-  test('getSupport returns normalized per-browser support', () => {
+  it('getSupport returns normalized per-browser support', () => {
     const support = getSupport('manifest', 'action')!
 
     expect(support.chrome).toEqual({
@@ -45,7 +45,7 @@ describe('lookup API', () => {
     expect(support.safari.supported).toBe(false)
   })
 
-  test('isSupported honors version gating', () => {
+  it('isSupported honors version gating', () => {
     expect(isSupported('api', 'runtime.sendMessage', 'chrome')).toBe(true)
     expect(isSupported('api', 'runtime.sendMessage', 'chrome', '26')).toBe(true)
     expect(isSupported('api', 'runtime.sendMessage', 'chrome', '25')).toBe(
@@ -55,7 +55,7 @@ describe('lookup API', () => {
     expect(isSupported('manifest', 'action', 'edge')).toBe(false) // Unknown browser
   })
 
-  test('getMinVersion / getMdnUrl / hasFeature', () => {
+  it('getMinVersion / getMdnUrl / hasFeature', () => {
     expect(getMinVersion('manifest', 'action', 'firefox')).toBe('109')
     expect(getMinVersion('manifest', 'action', 'safari')).toBeNull()
     expect(getMdnUrl('manifest', 'action')).toContain('developer.mozilla.org')
@@ -63,7 +63,7 @@ describe('lookup API', () => {
     expect(hasFeature('permissions', 'nope')).toBe(false)
   })
 
-  test('getBrowserSupport / listKeys', () => {
+  it('getBrowserSupport / listKeys', () => {
     expect(getBrowserSupport('api', 'runtime', 'safari')?.versionAdded).toBe(
       '14'
     )
@@ -71,7 +71,7 @@ describe('lookup API', () => {
     expect(listKeys('api').sort()).toEqual(['runtime', 'runtime.sendMessage'])
   })
 
-  test('throws on unknown browser instead of silently passing', () => {
+  it('throws on unknown browser instead of silently passing', () => {
     expect(() => isSupported('manifest', 'action', 'nope')).toThrow(
       /Unknown browser/
     )
@@ -90,7 +90,7 @@ describe('flag + partial support', () => {
     }))
   afterAll(() => resetIndex())
 
-  test('flagged is not "supported" and gets its own info', () => {
+  it('flagged is not "supported" and gets its own info', () => {
     const info = getBrowserSupport('api', 'a.flagged', 'firefox')!
 
     expect(info.flagged).toBe(true)
@@ -98,7 +98,7 @@ describe('flag + partial support', () => {
     expect(isSupported('api', 'a.flagged', 'firefox')).toBe(false)
   })
 
-  test('partial is surfaced', () => {
+  it('partial is surfaced', () => {
     expect(getBrowserSupport('api', 'a.partial', 'firefox')?.partial).toBe(true)
   })
 })

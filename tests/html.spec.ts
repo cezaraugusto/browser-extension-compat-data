@@ -13,7 +13,7 @@ import {
 } from '../src/index'
 
 describe('extractScripts', () => {
-  test('separates external and inline, skips JSON', () => {
+  it('separates external and inline, skips JSON', () => {
     const html = [
       '<html><head>',
       '<script src="a.js"></script>',
@@ -83,7 +83,7 @@ describe('analyzeExtension follows HTML entry-points', () => {
     fs.rmSync(dir, {recursive: true, force: true})
   })
 
-  test('scans external popup.js and inline popup.html scripts', async () => {
+  it('scans external popup.js and inline popup.html scripts', async () => {
     const report = await analyzeExtension(dir, [
       {browser: 'firefox', version: '121'}
     ])

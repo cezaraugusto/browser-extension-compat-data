@@ -43,7 +43,7 @@ describe('manifest validator', () => {
   beforeAll(() => setIndex(INDEX))
   afterAll(() => resetIndex())
 
-  test('generic walk flags any indexed key actually used', () => {
+  it('generic walk flags any indexed key actually used', () => {
     const findings = evaluateManifest(
       {
         manifest_version: 3,
@@ -59,7 +59,7 @@ describe('manifest validator', () => {
     expect(keys).not.toContain('action') // Firefox 109 supported
   })
 
-  test('checks permissions + optional_permissions, ignores host patterns', () => {
+  it('checks permissions + optional_permissions, ignores host patterns', () => {
     const findings = evaluateManifest(
       {
         manifest_version: 3,
@@ -79,7 +79,7 @@ describe('manifest validator', () => {
     expect(perms).not.toContain('https://*/*')
   })
 
-  test('manifest_version structural rules', () => {
+  it('manifest_version structural rules', () => {
     const mv3 = evaluateManifest(
       {
         manifest_version: 3,
@@ -109,7 +109,7 @@ describe('manifest validator', () => {
     expect(mv2Findings).toContain('host_permissions')
   })
 
-  test('web_accessible_resources shape mismatch (MV3 wants objects)', () => {
+  it('web_accessible_resources shape mismatch (MV3 wants objects)', () => {
     const findings = evaluateManifest(
       {manifest_version: 3, web_accessible_resources: ['a.png', 'b.png']},
       'chrome'
@@ -124,7 +124,7 @@ describe('manifest validator', () => {
     ).toBe(true)
   })
 
-  test('throws on unknown browser', async () => {
+  it('throws on unknown browser', async () => {
     const tmp = fs.mkdtempSync(path.join(os.tmpdir(), 'becd-'))
     const file = path.join(tmp, 'manifest.json')
 

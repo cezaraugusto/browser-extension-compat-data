@@ -33,7 +33,7 @@ describe('version-aware API checks', () => {
   })
   afterAll(() => resetIndex())
 
-  test('runtime.sendMessage unsupported when target version is below minimum', async () => {
+  it('runtime.sendMessage unsupported when target version is below minimum', async () => {
     const res = await getUnsupportedAPIsFromFile(entry, {
       browser: 'chrome',
       version: '5'
@@ -42,7 +42,7 @@ describe('version-aware API checks', () => {
     expect(res.map((r) => r.key)).toContain('runtime.sendMessage')
   })
 
-  test('runtime.sendMessage supported when target version meets minimum', async () => {
+  it('runtime.sendMessage supported when target version meets minimum', async () => {
     const res = await getUnsupportedAPIsFromFile(entry, {
       browser: 'chrome',
       version: '6'
