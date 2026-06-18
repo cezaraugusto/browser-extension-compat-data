@@ -178,6 +178,14 @@ node scripts/build-index.mjs path/to/browser-compat-data/webextensions src/gener
 
 > Node-only at runtime (reads the JSON asset via `fs`).
 
+## Related projects
+
+* [browser-extension-manifest-fields](https://github.com/cezaraugusto/browser-extension-manifest-fields)
+* [browser-extension-capabilities](https://github.com/cezaraugusto/browser-extension-capabilities)
+* [extension-from-store](https://github.com/cezaraugusto/extension-from-store)
+* [chrome-extension-manifest-json-schema](https://github.com/cezaraugusto/chrome-extension-manifest-json-schema)
+* [parse5-asset-patcher](https://github.com/cezaraugusto/parse5-asset-patcher)
+
 ## License
 
 MIT (c) Cezar Augusto.
