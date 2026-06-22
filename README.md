@@ -9,7 +9,7 @@
 
 # browser-extension-compat-data [![Version][npm-version-image]][npm-version-url] [![Downloads][npm-downloads-image]][npm-downloads-url] [![workflow][action-image]][action-url]
 
-MDN WebExtensions compatibility data , **manifest fields, APIs, and permissions** , in one lean package. Query whether a feature is supported in a browser/version (lookup), lint a whole extension across multiple targets (validate), or wire it into ESLint.
+MDN WebExtensions compatibility data (**manifest fields, APIs, and permissions**) in one lean package. Query whether a feature is supported in a browser/version (lookup), lint a whole extension across multiple targets (validate), or wire it into ESLint.
 
 - Data: [MDN browser-compat-data (webextensions)](https://github.com/mdn/browser-compat-data/tree/main/webextensions)
 - No runtime fetch. Ships a single compact JSON asset (~24 KiB gzipped), not the full ~15 MB MDN dataset.
@@ -20,7 +20,7 @@ MDN WebExtensions compatibility data , **manifest fields, APIs, and permissions*
 npm i browser-extension-compat-data
 ```
 
-## Lookup , "is this supported?"
+## Lookup: "is this supported?"
 
 ```ts
 import {
@@ -61,7 +61,9 @@ for (const { target, findings } of report.targets) {
 }
 ```
 
-It reads `manifest.json`, checks every field/permission MDN knows about (including `host_permissions` and `optional_permissions`), applies Manifest V2/V3 structural rules, and scans referenced source for `chrome.*`/`browser.*` usage , including **scripts inside HTML entry-points** (popup, options, devtools, sidebar, new-tab overrides), both external `<script src>` and inline blocks. Usage resolution follows **destructuring**, **`webextension-polyfill` imports**, and **aliasing**, with `file:line:column` on every finding.
+It reads `manifest.json`, checks every field/permission MDN knows about (including `host_permissions` and `optional_permissions`), applies Manifest V2/V3 structural rules, and scans referenced source for `chrome.*`/`browser.*` usage. That scan includes **scripts inside HTML entry-points** (popup, options, devtools, sidebar, new-tab overrides), both external `<script src>` and inline blocks.
+
+Usage resolution follows **destructuring**, **`webextension-polyfill` imports**, and **aliasing**, with `file:line:column` on every finding.
 
 `reason` is one of `not-supported | removed | partial | flag | manifest-version | no-compat-data`.
 
@@ -123,7 +125,7 @@ export default [
 ]
 ```
 
-Flags `chrome.*`/`browser.*` calls unsupported by your targets, inline in the editor , alias-aware (destructuring, `webextension-polyfill`, aliasing), the same resolution the analyzer uses.
+Flags `chrome.*`/`browser.*` calls unsupported by your targets, inline in the editor. It is alias-aware (destructuring, `webextension-polyfill`, aliasing), the same resolution the analyzer uses.
 
 ## Typed keys
 
@@ -167,7 +169,7 @@ getIndex, setIndex, setIndexFromFile, resetIndex
 
 ## Data & provenance
 
-The package ships one precomputed file , `src/generated/index.json`, copied to `dist/index.json` at build time and read lazily (not inlined into the bundles) , flattening MDN's `webextensions/{manifest,api,permissions}` into `key -> { u?: mdnUrl, s: { browser: { a, r?, p?, f? } } }` (`a` version_added, `r` version_removed, `p` partial, `f` behind-a-flag). `getIndex().v` reports the upstream BCD version.
+The package ships one precomputed file, `src/generated/index.json`, copied to `dist/index.json` at build time and read lazily (not inlined into the bundles). It flattens MDN's `webextensions/{manifest,api,permissions}` into `key -> { u?: mdnUrl, s: { browser: { a, r?, p?, f? } } }` (`a` version_added, `r` version_removed, `p` partial, `f` behind-a-flag). `getIndex().v` reports the upstream BCD version.
 
 A daily GitHub Action re-syncs MDN BCD, rebuilds the index + `src/generated/keys.ts`, and commits only when the data changed.
 
