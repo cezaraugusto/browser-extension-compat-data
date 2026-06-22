@@ -221,7 +221,7 @@ export function scanApiUsage (root: ScanNode): ScannedRef[] {
         parent?.type === 'ImportDefaultSpecifier'
       ) { return }
 
-      // Part of a member chain (alias.foo / foo.alias) , the chain top records the full path.
+      // Part of a member chain (alias.foo / foo.alias); the chain top records the full path.
       if (parent?.type === 'MemberExpression') return
 
       record(nsAliases.get(node.name)!, node)

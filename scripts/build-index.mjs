@@ -186,8 +186,8 @@ function buildPermissions () {
   return out
 }
 
-// Provenance: the upstream BCD version, when available. No timestamp on purpose
-// , the index is committed by CI only when data changes, so its content must be
+// Provenance: the upstream BCD version, when available. No timestamp on purpose:
+// the index is committed by CI only when data changes, so its content must be
 // stable across rebuilds.
 function bcdVersion () {
   // SourceDir is `<root>/webextensions`; BCD's package.json sits at `<root>`.

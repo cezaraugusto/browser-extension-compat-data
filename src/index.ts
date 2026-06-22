@@ -18,7 +18,7 @@ export type {
 // Browsers
 export {BROWSERS, isKnownBrowser, assertBrowser} from './browsers'
 
-// Lookup API , "inform me" about any manifest field, API or permission.
+// Lookup API: "inform me" about any manifest field, API or permission.
 export {
   hasFeature,
   getMdnUrl,
@@ -29,7 +29,7 @@ export {
   listKeys
 } from './lookup'
 
-// Validators , "tell me what won't work" for a target browser/version.
+// Validators: "tell me what won't work" for a target browser/version.
 export {getUnsupportedManifestFields, evaluateManifest} from './manifest'
 export {getUnsupportedAPIsFromFile} from './api'
 

@@ -3,7 +3,7 @@ import {parseTargets} from './targets'
 
 import type {ExtensionReport, UnsupportedItem} from './types'
 
-const USAGE = `browser-extension-compat-data , check a WebExtension against MDN compat data
+const USAGE = `browser-extension-compat-data: check a WebExtension against MDN compat data
 
 Usage:
   browser-extension-compat-data [dir] --targets <list> [options]
@@ -94,7 +94,7 @@ function formatFinding (f: UnsupportedItem): string {
     : ''
 
   const label = REASON_LABEL[f.reason] ?? f.reason
-  const detail = f.message ? ` , ${f.message}` : ''
+  const detail = f.message ? `: ${f.message}` : ''
 
   return `    [${label}] ${f.kind}: ${f.key}${where}${detail}`
 }
