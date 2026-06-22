@@ -4,10 +4,12 @@
 [npm-downloads-url]: https://www.npmjs.com/package/browser-extension-compat-data
 [action-image]: https://github.com/cezaraugusto/browser-extension-compat-data/actions/workflows/ci.yml/badge.svg?branch=main
 [action-url]: https://github.com/cezaraugusto/browser-extension-compat-data/actions
+[npm-provenance-image]: https://img.shields.io/badge/provenance-verified-0971fe?logo=npm&logoColor=white
+[npm-provenance-url]: https://www.npmjs.com/package/browser-extension-compat-data
 
 > Validate WebExtensions manifest (and optionally permissions/APIs) against MDN browser-compat-data
 
-# browser-extension-compat-data [![Version][npm-version-image]][npm-version-url] [![Downloads][npm-downloads-image]][npm-downloads-url] [![workflow][action-image]][action-url]
+# browser-extension-compat-data [![Version][npm-version-image]][npm-version-url] [![Downloads][npm-downloads-image]][npm-downloads-url] [![workflow][action-image]][action-url] [![provenance][npm-provenance-image]][npm-provenance-url]
 
 MDN WebExtensions compatibility data (**manifest fields, APIs, and permissions**) in one lean package. Query whether a feature is supported in a browser/version (lookup), lint a whole extension across multiple targets (validate), or wire it into ESLint.
 
