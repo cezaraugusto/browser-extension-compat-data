@@ -270,6 +270,7 @@ export type ManifestKey =
   | "theme.images.additional_backgrounds"
   | "theme.images.theme_frame"
   | "theme.properties"
+  | "theme.properties.additional_backgrounds_size"
   | "theme.properties.color_scheme"
   | "theme.properties.content_color_scheme"
   | "theme_experiment"
