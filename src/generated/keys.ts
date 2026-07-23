@@ -142,7 +142,6 @@ export type ManifestKey =
   | "manifest_version.v2"
   | "manifest_version.v3"
   | "name"
-  | "offline_enabled"
   | "omnibox"
   | "omnibox.keyword"
   | "optional_host_permissions"
