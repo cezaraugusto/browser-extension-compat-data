@@ -9,6 +9,7 @@
     "isolatedModules": true,
     "resolveJsonModule": true,
     "moduleResolution": "bundler",
+    "rootDir": "./src",
     "useDefineForClassFields": true,
     "allowImportingTsExtensions": true,
     "types": ["node"]
