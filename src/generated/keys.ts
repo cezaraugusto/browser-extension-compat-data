@@ -147,6 +147,7 @@ export type ManifestKey =
   | "manifest_version"
   | "manifest_version.v2"
   | "manifest_version.v3"
+  | "message_serialization"
   | "name"
   | "omnibox"
   | "omnibox.keyword"
